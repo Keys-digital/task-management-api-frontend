@@ -268,7 +268,7 @@ The Next.js frontend is designed to be deployed through Vercel.
 The production frontend domain is:
 
 ```text
-https://taskflo-iota.vercel.app
+https://task-management-api-frontend-psi.vercel.app
 ```
 
 The Vercel project should have the following production environment variable:
