@@ -98,6 +98,9 @@ export default function Home() {
         localStorage.setItem("refresh_token", data.refresh);
         localStorage.setItem("username", username);
 
+        // Notify other parts of the app (ThemeProvider) that the username changed
+        window.dispatchEvent(new Event("username-changed"));
+
         router.push("/dashboard");
       }
     } catch {

@@ -409,7 +409,7 @@ const deleteTask = async (taskId: number) => {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f7f8f6] px-6 py-10">
+      <main className="min-h-screen bg-[var(--color-page-bg)] px-6 py-10">
         <div className="mx-auto max-w-5xl">
           <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
             Loading project...
@@ -421,7 +421,7 @@ const deleteTask = async (taskId: number) => {
 
   if (error && !project) {
     return (
-      <main className="min-h-screen bg-[#f7f8f6] px-6 py-10">
+      <main className="min-h-screen bg-[var(--color-page-bg)] px-6 py-10">
         <div className="mx-auto max-w-5xl">
           <Link
             href="/dashboard"
@@ -443,7 +443,7 @@ const deleteTask = async (taskId: number) => {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f8f6] text-slate-900">
+    <main className="min-h-screen bg-[var(--color-page-bg)] text-slate-900">
       <div className="mx-auto max-w-5xl px-6 py-10 md:px-10">
 
         {/* Navigation */}

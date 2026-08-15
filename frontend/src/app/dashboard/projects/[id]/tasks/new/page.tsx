@@ -86,7 +86,7 @@ export default function NewTaskPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f8f6] text-slate-900">
+    <main className="min-h-screen bg-[var(--color-page-bg)] text-slate-900">
       <div className="mx-auto max-w-3xl px-6 py-10 md:px-10">
 
         <div className="mb-8">
@@ -179,7 +179,7 @@ export default function NewTaskPage() {
                 >
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
-                  <option value="done">Done</option>
+                  <option value="completed">Completed</option>
                 </select>
               </div>
 

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import DashboardSidebar from "@/components/DashboardSidebar";
+import UserMenu from "@/components/UserMenu";
 
 type Project = {
   id: number;
@@ -112,65 +114,30 @@ if (storedUsername) {
     fetchProjects();
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    window.location.href = "/";
-  };
+  // Debugging: log theme state and resolved page background variable
+  useEffect(() => {
+    try {
+      const root = document.documentElement;
+      const pageBg = getComputedStyle(root).getPropertyValue('--color-page-bg');
+      // eslint-disable-next-line no-console
+      console.debug('[Theme Debug] html.classList=', Array.from(root.classList));
+      // eslint-disable-next-line no-console
+      console.debug('[Theme Debug] --color-page-bg=', pageBg.trim());
+      const mainEl = document.querySelector('main');
+      if (mainEl) {
+        // eslint-disable-next-line no-console
+        console.debug('[Theme Debug] main background computed=', getComputedStyle(mainEl).backgroundColor);
+      }
+    } catch (e) {}
+  }, []);
 
   return (
-    <main className="min-h-screen bg-[#f7f8f6] text-slate-900">
-      <div className="flex min-h-screen">
+    <main className="min-h-screen bg-[var(--color-page-bg)] text-slate-900">
+      <div className="flex min-h-screen flex-col md:flex-row">
 
         {/* Sidebar */}
-        <aside className="hidden w-64 flex-col border-r border-slate-200 bg-white px-6 py-7 md:flex">
-
-          <div className="mb-10">
-            <h1 className="text-2xl font-bold tracking-tight text-teal-700">
-              TaskFlo
-            </h1>
-
-            <p className="mt-1 text-xs text-slate-400">
-              Manage work. Keep moving.
-            </p>
-          </div>
-
-          <nav className="space-y-2">
-
-            <Link
-              href="/dashboard"
-              className="flex items-center rounded-xl bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700"
-            >
-              Dashboard
-            </Link>
-
-            <Link
-              href="/dashboard/projects"
-              className="flex items-center rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-            >
-              Projects
-            </Link>
-
-            <Link
-              href="/dashboard/tasks"
-              className="flex items-center rounded-xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-            >
-              Tasks
-            </Link>
-
-          </nav>
-
-          <div className="mt-auto">
-            <button
-              onClick={logout}
-              className="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600"
-            >
-              Sign out
-            </button>
-          </div>
-
-        </aside>
-
+        <DashboardSidebar activePage="dashboard" />
+        
         {/* Main content */}
         <section className="flex-1">
 
@@ -199,9 +166,9 @@ if (storedUsername) {
                 </p>
               </div>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-100 font-semibold text-teal-700">
-  {(username || "User").charAt(0).toUpperCase()}
-</div>
+        {/* UserMenu Avartar dropdown */}
+<UserMenu />
+              
 
             </div>
 
@@ -370,7 +337,7 @@ if (storedUsername) {
                           {project.description || "No description provided."}
                         </p>
 
-                        <p className="mt-5 text-xs text-slate-400">
+                        <p className="mt-5 text-xs text-slate-200">
                           Updated{" "}
                           {new Date(
                             project.updated_at

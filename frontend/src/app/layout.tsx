@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+// ThemeProvider is applied to authenticated routes only (see /dashboard/layout.tsx)
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,10 +21,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+  lang="en"
+  suppressHydrationWarning
+  className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+>
+      <head />
+      <body className="min-h-full flex flex-col">
+        {children}
+      </body>
     </html>
   );
 }

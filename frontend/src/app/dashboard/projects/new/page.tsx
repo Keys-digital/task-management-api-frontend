@@ -77,7 +77,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f8f6] text-slate-900">
+    <main className="min-h-screen bg-[var(--color-page-bg)] text-slate-900">
       <div className="mx-auto max-w-3xl px-6 py-10 md:px-10">
 
         {/* Header */}
