@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
 import { useTheme } from "@/components/ThemeProvider/ThemeProvider";
@@ -16,25 +16,31 @@ type SettingsTab =
   | "integrations";
 
 const TIMEZONES = [
-  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-  { value: "America/New_York", label: "Eastern Time (US & Canada) - America/New_York" },
-  { value: "America/Chicago", label: "Central Time (US & Canada) - America/Chicago" },
-  { value: "America/Denver", label: "Mountain Time (US & Canada) - America/Denver" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada) - America/Los_Angeles" },
-  { value: "Europe/London", label: "London (GMT/BST) - Europe/London" },
-  { value: "Europe/Paris", label: "Central European Time - Europe/Paris" },
-  { value: "Europe/Berlin", label: "Berlin - Europe/Berlin" },
-  { value: "Asia/Dubai", label: "Dubai (GST) - Asia/Dubai" },
-  { value: "Asia/Kolkata", label: "India Standard Time - Asia/Kolkata" },
-  { value: "Asia/Singapore", label: "Singapore (SGT) - Asia/Singapore" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST) - Asia/Tokyo" },
-  { value: "Australia/Sydney", label: "Sydney (AEST) - Australia/Sydney" },
+  { value: "UTC", label: "UTC — Coordinated Universal Time" },
+  { value: "Africa/Lagos", label: "Africa/Lagos — West Africa Time (WAT, UTC+1)" },
+  { value: "Africa/Nairobi", label: "Africa/Nairobi — East Africa Time (EAT, UTC+3)" },
+  { value: "Africa/Cairo", label: "Africa/Cairo — Eastern European Time (EET, UTC+2)" },
+  { value: "Africa/Johannesburg", label: "Africa/Johannesburg — South Africa Standard Time (SAST, UTC+2)" },
+  { value: "America/New_York", label: "America/New_York — Eastern Time (ET)" },
+  { value: "America/Chicago", label: "America/Chicago — Central Time (CT)" },
+  { value: "America/Denver", label: "America/Denver — Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "America/Los_Angeles — Pacific Time (PT)" },
+  { value: "America/Sao_Paulo", label: "America/Sao_Paulo — Brasilia Time (BRT, UTC-3)" },
+  { value: "Europe/London", label: "Europe/London — GMT / BST" },
+  { value: "Europe/Paris", label: "Europe/Paris — Central European Time (CET)" },
+  { value: "Europe/Berlin", label: "Europe/Berlin — Central European Time (CET)" },
+  { value: "Europe/Moscow", label: "Europe/Moscow — Moscow Standard Time (MSK, UTC+3)" },
+  { value: "Asia/Dubai", label: "Asia/Dubai — Gulf Standard Time (GST, UTC+4)" },
+  { value: "Asia/Kolkata", label: "Asia/Kolkata — India Standard Time (IST, UTC+5:30)" },
+  { value: "Asia/Singapore", label: "Asia/Singapore — Singapore Time (SGT, UTC+8)" },
+  { value: "Asia/Tokyo", label: "Asia/Tokyo — Japan Standard Time (JST, UTC+9)" },
+  { value: "Australia/Sydney", label: "Australia/Sydney — Australian Eastern Time (AET)" },
 ];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
   const { theme, preference, setTheme } = useTheme();
-  const { user, loading, updateUser } = useUserProfile();
+  const { user, loading, updateUser, patchLocalProfile } = useUserProfile();
 
   // General preferences state
   const [language, setLanguage] = useState("en");
@@ -84,49 +90,139 @@ export default function SettingsPage() {
     text: string;
   } | null>(null);
 
-  // Sync state from profile
+  // Appearance auto-save feedback
+  const [appearanceSaved, setAppearanceSaved] = useState(false);
+  const appearanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Dirty-state baseline refs (initialised after first profile load)
+  const prefBaseline = useRef({ language: "en", timezone: "UTC", dateFormat: "YYYY-MM-DD", timeFormat: "24h", weekStart: "monday" });
+  const taskBaseline = useRef({ defaultTaskPriority: "medium", defaultTaskView: "list", defaultTaskSort: "due_date", showCompletedTasks: true });
+  const notifBaseline = useRef({ notifyDueDate: true, notifyOverdue: true, notifyProjectActivity: true, notifyEmailDigest: false, notifyInApp: true });
+  const isSettingsInitialized = useRef(false);
+
+  // Dirty-state derived booleans (computed from current state vs baselines)
+  const prefDirty =
+    language !== prefBaseline.current.language ||
+    timezone !== prefBaseline.current.timezone ||
+    dateFormat !== prefBaseline.current.dateFormat ||
+    timeFormat !== prefBaseline.current.timeFormat ||
+    weekStart !== prefBaseline.current.weekStart;
+  const taskDirty =
+    defaultTaskPriority !== taskBaseline.current.defaultTaskPriority ||
+    defaultTaskView !== taskBaseline.current.defaultTaskView ||
+    defaultTaskSort !== taskBaseline.current.defaultTaskSort ||
+    showCompletedTasks !== taskBaseline.current.showCompletedTasks;
+  const notifDirty =
+    notifyDueDate !== notifBaseline.current.notifyDueDate ||
+    notifyOverdue !== notifBaseline.current.notifyOverdue ||
+    notifyProjectActivity !== notifBaseline.current.notifyProjectActivity ||
+    notifyEmailDigest !== notifBaseline.current.notifyEmailDigest ||
+    notifyInApp !== notifBaseline.current.notifyInApp;
+
+  // ─── Per-field dirty-guard sync from UserProfileContext ─────────────────
+  // First load: initialize all fields + baselines unconditionally.
+  // Subsequent context updates: only overwrite fields that are currently clean
+  // (local === baseline). Dirty fields are preserved; their baselines are
+  // not advanced until the user saves or discards.
   useEffect(() => {
-    if (user?.profile) {
-      setLanguage(user.profile.language || "en");
-      setTimezone(user.profile.timezone || "UTC");
-      setDateFormat(user.profile.date_format || "YYYY-MM-DD");
-      setTimeFormat(user.profile.time_format || "24h");
-      setWeekStart(user.profile.week_start || "monday");
+    if (!user?.profile) return;
+    const p = user.profile;
 
-      setDefaultTaskPriority(user.profile.default_task_priority || "medium");
-      setDefaultTaskView(user.profile.default_task_view || "list");
-      setDefaultTaskSort(user.profile.default_task_sort || "due_date");
-      setShowCompletedTasks(user.profile.show_completed_tasks ?? true);
+    const sv = {
+      language:             p.language             || "en",
+      timezone:             p.timezone             || "UTC",
+      dateFormat:           p.date_format          || "YYYY-MM-DD",
+      timeFormat:           p.time_format          || "24h",
+      weekStart:            p.week_start           || "monday",
+      defaultTaskPriority:  p.default_task_priority || "medium",
+      defaultTaskView:      p.default_task_view    || "list",
+      defaultTaskSort:      p.default_task_sort    || "due_date",
+      showCompletedTasks:   p.show_completed_tasks ?? true,
+      notifyDueDate:        p.notify_due_date      ?? true,
+      notifyOverdue:        p.notify_overdue       ?? true,
+      notifyProjectActivity: p.notify_project_activity ?? true,
+      notifyEmailDigest:    p.notify_email_digest  ?? false,
+      notifyInApp:          p.notify_in_app        ?? true,
+    };
 
-      setNotifyDueDate(user.profile.notify_due_date ?? true);
-      setNotifyOverdue(user.profile.notify_overdue ?? true);
-      setNotifyProjectActivity(user.profile.notify_project_activity ?? true);
-      setNotifyEmailDigest(user.profile.notify_email_digest ?? false);
-      setNotifyInApp(user.profile.notify_in_app ?? true);
+    if (!isSettingsInitialized.current) {
+      // First load — set everything unconditionally.
+      isSettingsInitialized.current = true;
+      setLanguage(sv.language); setTimezone(sv.timezone); setDateFormat(sv.dateFormat);
+      setTimeFormat(sv.timeFormat); setWeekStart(sv.weekStart);
+      prefBaseline.current = { language: sv.language, timezone: sv.timezone, dateFormat: sv.dateFormat, timeFormat: sv.timeFormat, weekStart: sv.weekStart };
+
+      setDefaultTaskPriority(sv.defaultTaskPriority); setDefaultTaskView(sv.defaultTaskView);
+      setDefaultTaskSort(sv.defaultTaskSort); setShowCompletedTasks(sv.showCompletedTasks);
+      taskBaseline.current = { defaultTaskPriority: sv.defaultTaskPriority, defaultTaskView: sv.defaultTaskView, defaultTaskSort: sv.defaultTaskSort, showCompletedTasks: sv.showCompletedTasks };
+
+      setNotifyDueDate(sv.notifyDueDate); setNotifyOverdue(sv.notifyOverdue);
+      setNotifyProjectActivity(sv.notifyProjectActivity); setNotifyEmailDigest(sv.notifyEmailDigest); setNotifyInApp(sv.notifyInApp);
+      notifBaseline.current = { notifyDueDate: sv.notifyDueDate, notifyOverdue: sv.notifyOverdue, notifyProjectActivity: sv.notifyProjectActivity, notifyEmailDigest: sv.notifyEmailDigest, notifyInApp: sv.notifyInApp };
+      return;
     }
+
+    // Subsequent updates — per-field dirty check.
+    const pb = prefBaseline.current;
+    const nextPB = { ...pb };
+    if (language   === pb.language)   { setLanguage(sv.language);     nextPB.language   = sv.language;   }
+    if (timezone   === pb.timezone)   { setTimezone(sv.timezone);     nextPB.timezone   = sv.timezone;   }
+    if (dateFormat === pb.dateFormat) { setDateFormat(sv.dateFormat); nextPB.dateFormat = sv.dateFormat; }
+    if (timeFormat === pb.timeFormat) { setTimeFormat(sv.timeFormat); nextPB.timeFormat = sv.timeFormat; }
+    if (weekStart  === pb.weekStart)  { setWeekStart(sv.weekStart);   nextPB.weekStart  = sv.weekStart;  }
+    prefBaseline.current = nextPB;
+
+    const tb = taskBaseline.current;
+    const nextTB = { ...tb };
+    if (defaultTaskPriority === tb.defaultTaskPriority) { setDefaultTaskPriority(sv.defaultTaskPriority); nextTB.defaultTaskPriority = sv.defaultTaskPriority; }
+    if (defaultTaskView     === tb.defaultTaskView)     { setDefaultTaskView(sv.defaultTaskView);         nextTB.defaultTaskView     = sv.defaultTaskView;     }
+    if (defaultTaskSort     === tb.defaultTaskSort)     { setDefaultTaskSort(sv.defaultTaskSort);         nextTB.defaultTaskSort     = sv.defaultTaskSort;     }
+    if (showCompletedTasks  === tb.showCompletedTasks)  { setShowCompletedTasks(sv.showCompletedTasks);   nextTB.showCompletedTasks  = sv.showCompletedTasks;  }
+    taskBaseline.current = nextTB;
+
+    const nb = notifBaseline.current;
+    const nextNB = { ...nb };
+    if (notifyDueDate        === nb.notifyDueDate)        { setNotifyDueDate(sv.notifyDueDate);               nextNB.notifyDueDate        = sv.notifyDueDate;        }
+    if (notifyOverdue        === nb.notifyOverdue)        { setNotifyOverdue(sv.notifyOverdue);               nextNB.notifyOverdue        = sv.notifyOverdue;        }
+    if (notifyProjectActivity === nb.notifyProjectActivity) { setNotifyProjectActivity(sv.notifyProjectActivity); nextNB.notifyProjectActivity = sv.notifyProjectActivity; }
+    if (notifyEmailDigest    === nb.notifyEmailDigest)    { setNotifyEmailDigest(sv.notifyEmailDigest);       nextNB.notifyEmailDigest    = sv.notifyEmailDigest;    }
+    if (notifyInApp          === nb.notifyInApp)          { setNotifyInApp(sv.notifyInApp);                   nextNB.notifyInApp          = sv.notifyInApp;          }
+    notifBaseline.current = nextNB;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const showToast = (type: "success" | "error", text: string) => {
+  const showToast = useCallback((type: "success" | "error", text: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToastMessage({ type, text });
-    setTimeout(() => setToastMessage(null), 4000);
-  };
+    toastTimer.current = setTimeout(() => setToastMessage(null), 5000);
+  }, []);
+
+  const handleThemeChange = useCallback(async (val: "system" | "light" | "dark") => {
+    // setTheme handles both the optimistic UI update and the backend PATCH
+    // (with rollback on failure). It does NOT update UserProfileContext though,
+    // so we call patchLocalProfile once ThemeProvider accepts the change.
+    setTheme(val);
+    setAppearanceSaved(false);
+    if (appearanceTimer.current) clearTimeout(appearanceTimer.current);
+    // patchLocalProfile is a pure local state update — no extra API call.
+    patchLocalProfile({ appearance: val });
+    appearanceTimer.current = setTimeout(() => setAppearanceSaved(true), 400);
+  }, [setTheme, patchLocalProfile]);
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingPreferences(true);
     const res = await updateUser({
-      profile: {
-        language,
-        timezone,
-        date_format: dateFormat,
-        time_format: timeFormat,
-        week_start: weekStart,
-      },
+      profile: { language, timezone, date_format: dateFormat, time_format: timeFormat, week_start: weekStart },
     });
     setSavingPreferences(false);
     if (res.success) {
+      // Advance prefBaseline to server-confirmed values — dirty state cleared.
+      prefBaseline.current = { language, timezone, dateFormat, timeFormat, weekStart };
       showToast("success", "Preferences saved successfully.");
     } else {
+      // Do NOT advance baseline — API rejected the values; local edits preserved.
       showToast("error", res.error || "Failed to save preferences.");
     }
   };
@@ -144,6 +240,8 @@ export default function SettingsPage() {
     });
     setSavingTasks(false);
     if (res.success) {
+      // Advance taskBaseline to server-confirmed values.
+      taskBaseline.current = { defaultTaskPriority, defaultTaskView, defaultTaskSort, showCompletedTasks };
       showToast("success", "Task preferences saved successfully.");
     } else {
       showToast("error", res.error || "Failed to save task preferences.");
@@ -164,6 +262,8 @@ export default function SettingsPage() {
     });
     setSavingNotifications(false);
     if (res.success) {
+      // Advance notifBaseline to server-confirmed values.
+      notifBaseline.current = { notifyDueDate, notifyOverdue, notifyProjectActivity, notifyEmailDigest, notifyInApp };
       showToast("success", "Notification preferences updated.");
     } else {
       showToast("error", res.error || "Failed to update notification preferences.");
@@ -310,7 +410,7 @@ export default function SettingsPage() {
     }
   };
 
-  const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
+  const tabs: { id: SettingsTab; label: string; icon: React.ReactNode; badge?: boolean }[] = [
     {
       id: "appearance",
       label: "Appearance",
@@ -334,6 +434,7 @@ export default function SettingsPage() {
     {
       id: "preferences",
       label: "Preferences",
+      badge: prefDirty,
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -354,6 +455,7 @@ export default function SettingsPage() {
     {
       id: "tasks",
       label: "Task Defaults",
+      badge: taskDirty,
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -374,6 +476,7 @@ export default function SettingsPage() {
     {
       id: "notifications",
       label: "Notifications",
+      badge: notifDirty,
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -502,45 +605,76 @@ export default function SettingsPage() {
             )}
 
             {loading ? (
-              <div className="rounded-2xl bg-white p-12 text-center text-slate-400 shadow-sm ring-1 ring-slate-100">
-                Loading settings...
+              <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-100">
+                <div className="animate-pulse space-y-4">
+                  {[1, 2, 3].map((i) => <div key={i} className="h-12 rounded-xl bg-slate-100" />)}
+                  <div className="h-24 rounded-xl bg-slate-100" />
+                </div>
               </div>
             ) : (
-              <div className="grid gap-8 lg:grid-cols-12">
-                {/* Tabs Navigation */}
-                <div className="lg:col-span-3">
-                  <nav className="flex space-x-2 overflow-x-auto pb-2 lg:flex-col lg:space-x-0 lg:space-y-1.5 lg:pb-0">
+              <div className="flex gap-8 lg:items-start">
+                {/* Sidebar / Mobile Navigation */}
+                <aside className="shrink-0 lg:w-56">
+                  {/* Mobile: compact select */}
+                  <div className="lg:hidden mb-6">
+                    <label htmlFor="settings-mobile-nav" className="sr-only">Settings section</label>
+                    <div className="relative">
+                      <select
+                        id="settings-mobile-nav"
+                        value={activeTab}
+                        onChange={(e) => setActiveTab(e.target.value as SettingsTab)}
+                        className="w-full appearance-none rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm font-medium text-slate-900 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      >
+                        {tabs.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.label}{t.badge ? " ●" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" /></svg>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {tabs.find((t) => t.id === activeTab)?.label ?? "Settings"}
+                    </p>
+                  </div>
+
+                  {/* Desktop: vertical nav */}
+                  <nav role="tablist" aria-label="Settings sections" className="hidden lg:flex flex-col gap-1">
                     {tabs.map((tab) => {
                       const isActive = activeTab === tab.id;
                       return (
                         <button
                           key={tab.id}
+                          id={`settings-tab-${tab.id}`}
+                          role="tab"
+                          aria-selected={isActive}
+                          aria-controls={`settings-panel-${tab.id}`}
                           type="button"
                           onClick={() => setActiveTab(tab.id)}
-                          className={
+                          className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
                             isActive
-                              ? "flex shrink-0 items-center gap-3 rounded-xl bg-teal-50 px-4 py-3 text-left text-sm font-semibold text-teal-700"
-                              : "flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
-                          }
+                              ? "bg-teal-50 font-semibold text-teal-700"
+                              : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          }`}
                         >
-                          <span
-                            className={
-                              isActive ? "text-teal-600" : "text-slate-400"
-                            }
-                          >
-                            {tab.icon}
-                          </span>
-                          <span>{tab.label}</span>
+                          <span className={isActive ? "text-teal-600" : "text-slate-400"}>{tab.icon}</span>
+                          <span className="flex-1">{tab.label}</span>
+                          {tab.badge && (
+                            <span aria-label="Unsaved changes" className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                          )}
                         </button>
                       );
                     })}
                   </nav>
-                </div>
+                </aside>
 
                 {/* Tab Content Panel */}
-                <div className="lg:col-span-9">
+                <div className="min-w-0 flex-1">
                   {/* 1. APPEARANCE TAB */}
                   {activeTab === "appearance" && (
+
                     <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 sm:p-8">
                       <div className="mb-6">
                         <h4 className="text-lg font-bold text-slate-900">
@@ -555,7 +689,7 @@ export default function SettingsPage() {
                         {/* Use System Default */}
                         <button
                           type="button"
-                          onClick={() => setTheme("system")}
+                          onClick={() => handleThemeChange("system")}
                           className={`relative flex flex-col items-start rounded-2xl border p-5 text-left transition ${
                             preference === "system"
                               ? "border-teal-600 bg-teal-50 ring-2 ring-teal-600 shadow-sm"
@@ -589,7 +723,7 @@ export default function SettingsPage() {
                         {/* Light Mode */}
                         <button
                           type="button"
-                          onClick={() => setTheme("light")}
+                          onClick={() => handleThemeChange("light")}
                           className={`relative flex flex-col items-start rounded-2xl border p-5 text-left transition ${
                             preference === "light"
                               ? "border-teal-600 bg-teal-50 ring-2 ring-teal-600 shadow-sm"
@@ -623,7 +757,7 @@ export default function SettingsPage() {
                         {/* Night Mode */}
                         <button
                           type="button"
-                          onClick={() => setTheme("dark")}
+                          onClick={() => handleThemeChange("dark")}
                           className={`relative flex flex-col items-start rounded-2xl border p-5 text-left transition ${
                             preference === "dark"
                               ? "border-teal-600 bg-teal-50 ring-2 ring-teal-600 shadow-sm"
@@ -653,6 +787,15 @@ export default function SettingsPage() {
                             Sleek dark interface designed for low light
                           </p>
                         </button>
+                      </div>
+                      {/* Auto-save feedback */}
+                      <div aria-live="polite" className="mt-4 flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]">
+                        {appearanceSaved && (
+                          <>
+                            <svg className="h-3.5 w-3.5 text-teal-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+                            <span className="text-teal-600 font-medium">Saved to your profile</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
@@ -776,14 +919,37 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex justify-end">
-                        <button
-                          type="submit"
-                          disabled={savingPreferences}
-                          className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
-                        >
-                          {savingPreferences ? "Saving..." : "Save Preferences"}
-                        </button>
+                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                        <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
+                          {prefDirty && !savingPreferences && (
+                            <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
+                          )}
+                          {savingPreferences && (
+                            <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Saving...</>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {prefDirty && !savingPreferences && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const b = prefBaseline.current;
+                                setLanguage(b.language); setTimezone(b.timezone);
+                                setDateFormat(b.dateFormat); setTimeFormat(b.timeFormat); setWeekStart(b.weekStart);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            >
+                              Discard
+                            </button>
+                          )}
+                          <button
+                            type="submit"
+                            disabled={savingPreferences || !prefDirty}
+                            className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {savingPreferences ? "Saving..." : "Save Preferences"}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   )}
@@ -887,14 +1053,37 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex justify-end">
-                        <button
-                          type="submit"
-                          disabled={savingTasks}
-                          className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
-                        >
-                          {savingTasks ? "Saving..." : "Save Task Defaults"}
-                        </button>
+                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                        <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
+                          {taskDirty && !savingTasks && (
+                            <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
+                          )}
+                          {savingTasks && (
+                            <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Saving...</>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {taskDirty && !savingTasks && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const b = taskBaseline.current;
+                                setDefaultTaskPriority(b.defaultTaskPriority); setDefaultTaskView(b.defaultTaskView);
+                                setDefaultTaskSort(b.defaultTaskSort); setShowCompletedTasks(b.showCompletedTasks);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            >
+                              Discard
+                            </button>
+                          )}
+                          <button
+                            type="submit"
+                            disabled={savingTasks || !taskDirty}
+                            className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {savingTasks ? "Saving..." : "Save Task Defaults"}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   )}
@@ -1021,14 +1210,37 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex justify-end">
-                        <button
-                          type="submit"
-                          disabled={savingNotifications}
-                          className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 disabled:opacity-50"
-                        >
-                          {savingNotifications ? "Saving..." : "Save Notifications"}
-                        </button>
+                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                        <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
+                          {notifDirty && !savingNotifications && (
+                            <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
+                          )}
+                          {savingNotifications && (
+                            <><svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Saving...</>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {notifDirty && !savingNotifications && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const b = notifBaseline.current;
+                                setNotifyDueDate(b.notifyDueDate); setNotifyOverdue(b.notifyOverdue);
+                                setNotifyProjectActivity(b.notifyProjectActivity); setNotifyEmailDigest(b.notifyEmailDigest); setNotifyInApp(b.notifyInApp);
+                              }}
+                              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            >
+                              Discard
+                            </button>
+                          )}
+                          <button
+                            type="submit"
+                            disabled={savingNotifications || !notifDirty}
+                            className="rounded-xl bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {savingNotifications ? "Saving..." : "Save Notifications"}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   )}

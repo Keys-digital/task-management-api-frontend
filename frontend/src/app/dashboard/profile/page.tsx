@@ -1,24 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
 import { useUserProfile } from "@/components/UserProfileContext";
 
 const TIMEZONES = [
-  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-  { value: "America/New_York", label: "Eastern Time (US & Canada) - America/New_York" },
-  { value: "America/Chicago", label: "Central Time (US & Canada) - America/Chicago" },
-  { value: "America/Denver", label: "Mountain Time (US & Canada) - America/Denver" },
-  { value: "America/Los_Angeles", label: "Pacific Time (US & Canada) - America/Los_Angeles" },
-  { value: "Europe/London", label: "London (GMT/BST) - Europe/London" },
-  { value: "Europe/Paris", label: "Central European Time - Europe/Paris" },
-  { value: "Europe/Berlin", label: "Berlin - Europe/Berlin" },
-  { value: "Asia/Dubai", label: "Dubai (GST) - Asia/Dubai" },
-  { value: "Asia/Kolkata", label: "India Standard Time - Asia/Kolkata" },
-  { value: "Asia/Singapore", label: "Singapore (SGT) - Asia/Singapore" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST) - Asia/Tokyo" },
-  { value: "Australia/Sydney", label: "Sydney (AEST) - Australia/Sydney" },
+  { value: "UTC", label: "UTC — Coordinated Universal Time" },
+  { value: "Africa/Lagos", label: "Africa/Lagos — West Africa Time (WAT, UTC+1)" },
+  { value: "Africa/Nairobi", label: "Africa/Nairobi — East Africa Time (EAT, UTC+3)" },
+  { value: "Africa/Cairo", label: "Africa/Cairo — Eastern European Time (EET, UTC+2)" },
+  { value: "Africa/Johannesburg", label: "Africa/Johannesburg — South Africa Standard Time (SAST, UTC+2)" },
+  { value: "America/New_York", label: "America/New_York — Eastern Time (ET)" },
+  { value: "America/Chicago", label: "America/Chicago — Central Time (CT)" },
+  { value: "America/Denver", label: "America/Denver — Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "America/Los_Angeles — Pacific Time (PT)" },
+  { value: "America/Sao_Paulo", label: "America/Sao_Paulo — Brasilia Time (BRT, UTC-3)" },
+  { value: "Europe/London", label: "Europe/London — GMT / BST" },
+  { value: "Europe/Paris", label: "Europe/Paris — Central European Time (CET)" },
+  { value: "Europe/Berlin", label: "Europe/Berlin — Central European Time (CET)" },
+  { value: "Europe/Moscow", label: "Europe/Moscow — Moscow Standard Time (MSK, UTC+3)" },
+  { value: "Asia/Dubai", label: "Asia/Dubai — Gulf Standard Time (GST, UTC+4)" },
+  { value: "Asia/Kolkata", label: "Asia/Kolkata — India Standard Time (IST, UTC+5:30)" },
+  { value: "Asia/Singapore", label: "Asia/Singapore — Singapore Time (SGT, UTC+8)" },
+  { value: "Asia/Tokyo", label: "Asia/Tokyo — Japan Standard Time (JST, UTC+9)" },
+  { value: "Australia/Sydney", label: "Australia/Sydney — Australian Eastern Time (AET)" },
 ];
 
 export default function ProfilePage() {
@@ -59,20 +65,75 @@ export default function ProfilePage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
-  // Sync state from user context
+  // ─── Sync baseline refs ───────────────────────────────────────────────────
+  // Tracks the last-committed (server-confirmed) value for each editable field.
+  // A field is "clean" when its current state equals the baseline.
+  // A field is "dirty" when the user has changed it but not yet saved.
+  // Only clean fields are overwritten by incoming UserProfileContext updates.
+  const isProfileInitialized = useRef(false);
+  const profileBaseline = useRef({
+    firstName: "",
+    lastName: "",
+    fullName: "",
+    bio: "",
+    timezone: "UTC",
+    dateFormat: "YYYY-MM-DD",
+    timeFormat: "24h",
+  });
+
+  // ─── Per-field dirty-guard sync from UserProfileContext ─────────────────
+  // On first load: initialize all fields and set baselines.
+  // On subsequent context updates (e.g. another page saved a shared field):
+  //   - Only overwrite fields that are currently clean (local === baseline).
+  //   - Dirty fields are never overwritten; their baseline is not advanced.
+  //   - This ensures in-progress edits survive external context changes.
   useEffect(() => {
-    if (user) {
-      setFirstName(user.first_name || "");
-      setLastName(user.last_name || "");
-      setFullName(user.profile?.full_name || "");
-      setBio(user.profile?.bio || "");
-      setTimezone(user.profile?.timezone || "UTC");
-      setDateFormat(user.profile?.date_format || "YYYY-MM-DD");
-      setTimeFormat(user.profile?.time_format || "24h");
+    if (!user) return;
+    const p = user.profile;
+
+    const serverValues = {
+      firstName: user.first_name || "",
+      lastName: user.last_name || "",
+      fullName: p?.full_name || "",
+      bio: p?.bio || "",
+      timezone: p?.timezone || "UTC",
+      dateFormat: p?.date_format || "YYYY-MM-DD",
+      timeFormat: p?.time_format || "24h",
+    };
+
+    if (!isProfileInitialized.current) {
+      // First load — initialize everything unconditionally.
+      isProfileInitialized.current = true;
+      setFirstName(serverValues.firstName);
+      setLastName(serverValues.lastName);
+      setFullName(serverValues.fullName);
+      setBio(serverValues.bio);
+      setTimezone(serverValues.timezone);
+      setDateFormat(serverValues.dateFormat);
+      setTimeFormat(serverValues.timeFormat);
+      profileBaseline.current = { ...serverValues };
+      return;
     }
+
+    // Subsequent updates — per-field dirty check.
+    // Clean field: current value === baseline → follow context, advance baseline.
+    // Dirty field: current value !== baseline → preserve local value and baseline.
+    const bl = profileBaseline.current;
+    const nextBaseline = { ...bl };
+
+    if (firstName === bl.firstName) { setFirstName(serverValues.firstName); nextBaseline.firstName = serverValues.firstName; }
+    if (lastName === bl.lastName) { setLastName(serverValues.lastName); nextBaseline.lastName = serverValues.lastName; }
+    if (fullName === bl.fullName) { setFullName(serverValues.fullName); nextBaseline.fullName = serverValues.fullName; }
+    if (bio === bl.bio) { setBio(serverValues.bio); nextBaseline.bio = serverValues.bio; }
+    if (timezone === bl.timezone) { setTimezone(serverValues.timezone); nextBaseline.timezone = serverValues.timezone; }
+    if (dateFormat === bl.dateFormat) { setDateFormat(serverValues.dateFormat); nextBaseline.dateFormat = serverValues.dateFormat; }
+    if (timeFormat === bl.timeFormat) { setTimeFormat(serverValues.timeFormat); nextBaseline.timeFormat = serverValues.timeFormat; }
+
+    profileBaseline.current = nextBaseline;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  const handleSaveProfile = async (e: React.FormEvent) => {
+  const handleSaveProfile = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setStatusMessage(null);
@@ -91,18 +152,33 @@ export default function ProfilePage() {
 
     setSaving(false);
     if (result.success) {
+      // Advance baselines to server-confirmed values so dirty state clears.
+      // updateUser sets user in context with the API response body, so the
+      // values in context are now canonical. Mirror them into the baseline.
+      profileBaseline.current = {
+        ...profileBaseline.current,
+        firstName,
+        lastName,
+        fullName,
+        bio,
+        timezone,
+        dateFormat,
+        timeFormat,
+      };
       setStatusMessage({
         type: "success",
         text: "Profile updated successfully.",
       });
       setTimeout(() => setStatusMessage(null), 4000);
     } else {
+      // Do NOT advance baselines — the API rejected the values.
+      // Local state (user's in-progress edits) is preserved.
       setStatusMessage({
         type: "error",
         text: result.error || "Failed to update profile.",
       });
     }
-  };
+  }, [updateUser, firstName, lastName, fullName, bio, timezone, dateFormat, timeFormat]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -196,10 +272,10 @@ export default function ProfilePage() {
 
   const formattedJoinDate = user?.date_joined
     ? new Date(user.date_joined).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      })
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
     : null;
 
   // Calculate profile completion
@@ -252,11 +328,10 @@ export default function ProfilePage() {
             {/* Notification Toast */}
             {statusMessage && (
               <div
-                className={`mb-6 flex items-center justify-between rounded-2xl p-4 text-sm font-medium ${
-                  statusMessage.type === "success"
+                className={`mb-6 flex items-center justify-between rounded-2xl p-4 text-sm font-medium ${statusMessage.type === "success"
                     ? "bg-teal-50 text-teal-800 ring-1 ring-teal-200"
                     : "bg-red-50 text-red-800 ring-1 ring-red-200"
-                }`}
+                  }`}
               >
                 <span>{statusMessage.text}</span>
                 <button

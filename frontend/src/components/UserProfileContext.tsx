@@ -54,6 +54,10 @@ type UserProfileContextType = {
       profile?: Partial<UserProfileData>;
     }
   ) => Promise<{ success: boolean; error?: string }>;
+  /** Update local context state without hitting the API.
+   * Use when another layer (e.g. ThemeProvider) already owns the API call
+   * and you only need context to reflect the confirmed value. */
+  patchLocalProfile: (profile: Partial<UserProfileData>) => void;
   uploadAvatar: (file: File) => Promise<{ success: boolean; error?: string }>;
   removeAvatar: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
@@ -232,6 +236,16 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     [fetchUserProfile]
   );
 
+  const patchLocalProfile = useCallback(
+    (profile: Partial<UserProfileData>) => {
+      setUser((prev) => {
+        if (!prev) return null;
+        return { ...prev, profile: { ...prev.profile, ...profile } };
+      });
+    },
+    []
+  );
+
   const uploadAvatar = useCallback(
     async (file: File): Promise<{ success: boolean; error?: string }> => {
       const token = localStorage.getItem("access_token");
@@ -346,6 +360,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         initials,
         avatarUrl,
         updateUser,
+        patchLocalProfile,
         uploadAvatar,
         removeAvatar,
         refreshUser: fetchUserProfile,
