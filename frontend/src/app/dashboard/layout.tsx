@@ -1,18 +1,17 @@
-import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
-import "../globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider/ThemeProvider";
+import { UserProfileProvider } from "@/components/UserProfileContext";
+import "../globals.css";
 
-// Geist font variables are applied on the root <html> in app/layout.tsx.
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-
-export default function DashboardLayout({ children }: LayoutProps<"/dashboard">) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <>
-            <div>
-        <ThemeProvider>{children}</ThemeProvider>
-      </div>
-    </>
+    <div>
+      <ThemeProvider>
+        <UserProfileProvider>{children}</UserProfileProvider>
+      </ThemeProvider>
+    </div>
   );
 }
