@@ -173,7 +173,7 @@ useEffect(() => {
                 </h3>
 
                 <p className="mt-2 text-slate-500">
-                  Review and manage all projects belonging to your account.
+                  Review and manage your projects, or choose a project to add a task.
                 </p>
               </div>
 
@@ -271,57 +271,70 @@ useEffect(() => {
                     const iconStyle = getProjectIconStyle(project.id);
 
                     return (
-                      <Link
+                      <div
                         key={project.id}
-                        href={`/dashboard/projects/${project.id}`}
-                        className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
+                        className="group flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <div className="mb-5 flex items-start justify-between">
-                          <div
-                            className={`flex h-11 w-11 items-center justify-center rounded-full ${iconStyle.background} ${iconStyle.icon}`}
-                            aria-label="Project"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              className="h-5 w-5"
+                        <Link
+                          href={`/dashboard/projects/${project.id}`}
+                          className="block"
+                        >
+                          <div className="mb-5 flex items-start justify-between">
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-full ${iconStyle.background} ${iconStyle.icon}`}
+                              aria-label="Project"
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3.75 7.5h5.086a2.25 2.25 0 0 1 1.591.659l1.328 1.328a2.25 2.25 0 0 0 1.591.659h6.904a1.75 1.75 0 0 1 1.75 1.75v6.354a1.75 1.75 0 0 1-1.75 1.75H5.5a1.75 1.75 0 0 1-1.75-1.75V7.5Z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M3.75 7.5V6.25A1.75 1.75 0 0 1 5.5 4.5h4.086a2.25 2.25 0 0 1 1.591.659l1.328 1.328a2.25 2.25 0 0 0 1.591.659h1.995"
-                              />
-                            </svg>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-5 w-5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M3.75 7.5h5.086a2.25 2.25 0 0 1 1.591.659l1.328 1.328a2.25 2.25 0 0 0 1.591.659h6.904a1.75 1.75 0 0 1 1.75 1.75v6.354a1.75 1.75 0 0 1-1.75 1.75H5.5a1.75 1.75 0 0 1-1.75-1.75V7.5Z"
+                                />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M3.75 7.5V6.25A1.75 1.75 0 0 1 5.5 4.5h4.086a2.25 2.25 0 0 1 1.591.659l1.328 1.328a2.25 2.25 0 0 0 1.591.659h1.995"
+                                />
+                              </svg>
+                            </div>
+
+                            <span className="text-slate-300 transition group-hover:text-teal-600">
+                              →
+                            </span>
                           </div>
 
-                          <span className="text-slate-300 transition group-hover:text-teal-600">
-                            →
-                          </span>
+                          <h4 className="text-lg font-semibold text-slate-900 transition group-hover:text-teal-700">
+                            {project.name}
+                          </h4>
+
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                            {project.description || "No description provided."}
+                          </p>
+                        </Link>
+
+                        <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
+                          <p className="text-xs text-slate-400">
+                            Updated{" "}
+                            {new Date(
+                              project.updated_at
+                            ).toLocaleDateString()}
+                          </p>
+
+                          <Link
+                            href={`/dashboard/projects/${project.id}/tasks/new`}
+                            className="rounded-lg bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 transition hover:bg-teal-100 hover:text-teal-800"
+                          >
+                            + Add Task
+                          </Link>
                         </div>
-
-                        <h4 className="text-lg font-semibold text-slate-900">
-                          {project.name}
-                        </h4>
-
-                        <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                          {project.description || "No description provided."}
-                        </p>
-
-                        <p className="mt-5 text-xs text-slate-400">
-                          Updated{" "}
-                          {new Date(
-                            project.updated_at
-                          ).toLocaleDateString()}
-                        </p>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>

@@ -41,22 +41,88 @@ html, body {
 */
 .dark .bg-white { background-color: var(--color-surface) !important; }
 .dark .text-slate-900 { color: var(--color-text-primary) !important; }
+.dark .text-slate-800 { color: var(--color-text-primary) !important; }
 .dark .text-slate-700 { color: var(--color-text-muted) !important; }
-.dark .text-slate-500 { color: var(--color-text-muted) !important; }
 .dark .text-slate-600 { color: var(--color-text-muted) !important; }
+.dark .text-slate-500 { color: var(--color-text-muted) !important; }
+.dark .text-slate-400 { color: #94a3b8 !important; }
+.dark .text-slate-300 { color: #64748b !important; }
 .dark .border-slate-200 { border-color: var(--color-border) !important; }
-.dark .ring-slate-100 { box-shadow: 0 0 0 3px var(--color-ring) !important; }
+.dark .border-slate-100 { border-color: var(--color-border) !important; }
+.dark .border-slate-300 { border-color: var(--color-border) !important; }
+.dark .ring-slate-100 { box-shadow: 0 0 0 1px var(--color-border), 0 0 0 3px var(--color-ring) !important; }
 .dark .bg-slate-50 { background-color: rgba(255,255,255,0.02) !important; }
+.dark .bg-slate-100 { background-color: rgba(255,255,255,0.06) !important; }
+.dark .bg-slate-200 { background-color: rgba(255,255,255,0.1) !important; }
 
 /* Inputs & cards */
-.dark .bg-white\/70 { background-color: rgba(255,255,255,0.03) !important; }
+.dark .bg-white\/70 { background-color: rgba(255,255,255,0.04) !important; }
+.dark input, .dark textarea, .dark select {
+  background-color: var(--color-input-bg) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+.dark option {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Ensure buttons on dark surfaces have subtle borders */
+.dark button.bg-white, .dark a.bg-white {
+  border: 1px solid var(--color-border) !important;
+}
 
 /* Ensure modals/backdrops that used dark overlays still work */
-.dark .bg-slate-900\/50 { background-color: rgba(2,6,23,0.5) !important; }
+.dark .bg-slate-900\/50 { background-color: rgba(2,6,23,0.7) !important; }
 
 /* High-specificity fallback: ensure the page background uses the token */
 .dark main { background-color: var(--color-page-bg) !important; }
 
-/* Utility: allow using CSS variable in Tailwind arbitrary values like bg-[var(--color-page-bg)] */
-/* (No extra code needed; Tailwind supports this pattern.) */
+/* Status & Brand color overrides for dark mode */
+.dark .bg-teal-50 { background-color: rgba(13, 148, 136, 0.1) !important; }
+.dark .bg-teal-100 { background-color: rgba(13, 148, 136, 0.18) !important; }
+.dark .text-teal-700 { color: #2dd4bf !important; }
+.dark .text-teal-600 { color: #2dd4bf !important; }
+
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.08) !important; }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.18) !important; }
+.dark .text-blue-700 { color: #60a5fa !important; }
+
+.dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.08) !important; }
+.dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.18) !important; }
+.dark .text-emerald-700 { color: #34d399 !important; }
+.dark .ring-emerald-100 { --tw-ring-color: rgba(16, 185, 129, 0.25) !important; box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.3) !important; }
+
+.dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.08) !important; }
+.dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.18) !important; }
+.dark .text-amber-700 { color: #fbbf24 !important; }
+.dark .ring-amber-100 { --tw-ring-color: rgba(245, 158, 11, 0.25) !important; box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3) !important; }
+
+.dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.08) !important; }
+.dark .bg-rose-50\/70 { background-color: rgba(244, 63, 94, 0.12) !important; }
+.dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.18) !important; }
+.dark .text-rose-700 { color: #fb7185 !important; }
+.dark .text-rose-600 { color: #fb7185 !important; }
+.dark .border-rose-200 { border-color: rgba(244, 63, 94, 0.3) !important; }
+.dark .border-rose-200\/70 { border-color: rgba(244, 63, 94, 0.2) !important; }
+.dark .ring-rose-100 { --tw-ring-color: rgba(244, 63, 94, 0.25) !important; box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.3) !important; }
+.dark .ring-rose-200 { --tw-ring-color: rgba(244, 63, 94, 0.3) !important; box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.3) !important; }
+
+.dark .bg-violet-50 { background-color: rgba(139, 92, 246, 0.08) !important; }
+.dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.18) !important; }
+.dark .text-violet-700 { color: #a78bfa !important; }
+
+.dark .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.08) !important; }
+.dark .bg-cyan-100 { background-color: rgba(6, 182, 212, 0.18) !important; }
+.dark .text-cyan-700 { color: #22d3ee !important; }
+
+.dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.08) !important; }
+.dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.18) !important; }
+.dark .text-indigo-700 { color: #818cf8 !important; }
+
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.1) !important; }
+.dark .text-red-700 { color: #f87171 !important; }
+.dark .text-red-600 { color: #f87171 !important; }
+.dark .ring-red-100 { --tw-ring-color: rgba(239, 68, 68, 0.2) !important; box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3) !important; }
+
 

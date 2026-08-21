@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
+import DashboardTaskSummary from "@/components/DashboardTaskSummary";
+import type { Task } from "@/lib/taskSummary";
 
 type Project = {
   id: number;
@@ -61,12 +63,15 @@ const getProjectCardStyle = (projectId: number) => {
 
 export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(true);
   const [error, setError] = useState("");
+  const [tasksError, setTasksError] = useState("");
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("access_token");
 
@@ -74,32 +79,58 @@ export default function DashboardPage() {
           window.location.href = "/";
           return;
         }
-const storedUsername = localStorage.getItem("username");
 
-if (storedUsername) {
-  setUsername(storedUsername);
-}
+        const storedUsername = localStorage.getItem("username");
+        if (storedUsername) {
+          setUsername(storedUsername);
+        }
 
-        const response = await fetch(`${API_URL}/api/projects/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        // Fetch projects and tasks in parallel
+        const [projectsResponse, tasksResponse] = await Promise.all([
+          fetch(`${API_URL}/api/projects/`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+          fetch(`${API_URL}/api/projects/tasks/`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }),
+        ]);
 
-        if (response.status === 401) {
+        if (
+          projectsResponse.status === 401 ||
+          tasksResponse.status === 401
+        ) {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           window.location.href = "/";
           return;
         }
 
-        if (!response.ok) {
+        // Handle Projects response
+        if (!projectsResponse.ok) {
           throw new Error("Unable to load projects.");
         }
+        const projectsData = await projectsResponse.json();
+        setProjects(Array.isArray(projectsData) ? projectsData : projectsData.results || []);
 
-        const data = await response.json();
-        setProjects(data);
+        // Handle Tasks response
+        if (tasksResponse.ok) {
+          const tasksData = await tasksResponse.json();
+          if (Array.isArray(tasksData)) {
+            setTasks(tasksData);
+          } else if (Array.isArray(tasksData.results)) {
+            setTasks(tasksData.results);
+          } else {
+            setTasks([]);
+          }
+        } else {
+          setTasksError("Unable to load tasks.");
+        }
       } catch (err) {
         setError(
           err instanceof Error
@@ -108,10 +139,11 @@ if (storedUsername) {
         );
       } finally {
         setLoading(false);
+        setTasksLoading(false);
       }
     };
 
-    fetchProjects();
+    fetchData();
   }, []);
 
   // Debugging: log theme state and resolved page background variable
@@ -220,6 +252,14 @@ if (storedUsername) {
               </div>
 
             </div>
+
+            {/* Task Summary */}
+            <DashboardTaskSummary
+              tasks={tasks}
+              projects={projects}
+              loading={tasksLoading}
+              error={tasksError}
+            />
 
             {/* Projects */}
             <div>
