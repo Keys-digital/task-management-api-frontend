@@ -107,7 +107,7 @@ export default function DashboardSidebar({
 }: DashboardSidebarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarImgError, setSidebarImgError] = useState(false);
-  const { user, initials, avatarUrl } = useUserProfile();
+  const { user, loading, initials, avatarUrl } = useUserProfile();
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -161,36 +161,46 @@ export default function DashboardSidebar({
 
         {/* User Card at bottom of sidebar */}
         <div className="border-t border-slate-100 pt-4">
-          <Link
-            href="/dashboard/profile"
-            className={
-              activePage === "profile"
-                ? "flex items-center gap-3 rounded-xl bg-teal-50 p-2.5 text-teal-700"
-                : "group flex items-center gap-3 rounded-xl p-2.5 text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
-            }
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700 ring-1 ring-teal-200">
-              {avatarUrl && !sidebarImgError ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatarUrl}
-                  alt={displayName}
-                  onError={() => setSidebarImgError(true)}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                initials
-              )}
+          {loading || !user ? (
+            <div className="flex items-center gap-3 rounded-xl p-2.5 animate-pulse">
+              <div className="h-9 w-9 shrink-0 rounded-full bg-slate-200" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="h-3 w-20 rounded bg-slate-200" />
+                <div className="h-2.5 w-14 rounded bg-slate-100" />
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-semibold text-slate-800">
-                {displayName}
-              </p>
-              <p className="truncate text-[11px] text-slate-400">
-                @{user?.username || "profile"}
-              </p>
-            </div>
-          </Link>
+          ) : (
+            <Link
+              href="/dashboard/profile"
+              className={
+                activePage === "profile"
+                  ? "flex items-center gap-3 rounded-xl bg-teal-50 p-2.5 text-teal-700"
+                  : "group flex items-center gap-3 rounded-xl p-2.5 text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              }
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700 ring-1 ring-teal-200">
+                {avatarUrl && !sidebarImgError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    onError={() => setSidebarImgError(true)}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-slate-800">
+                  {displayName}
+                </p>
+                <p className="truncate text-[11px] text-slate-400">
+                  @{user.username || "profile"}
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
       </aside>
 
@@ -229,22 +239,26 @@ export default function DashboardSidebar({
             </p>
           </div>
 
-          <Link
-            href="/dashboard/profile"
-            className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700"
-          >
-            {avatarUrl && !sidebarImgError ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={displayName}
-                onError={() => setSidebarImgError(true)}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              initials
-            )}
-          </Link>
+          {loading || !user ? (
+            <div className="h-9 w-9 rounded-full bg-slate-200 animate-pulse" />
+          ) : (
+            <Link
+              href="/dashboard/profile"
+              className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700"
+            >
+              {avatarUrl && !sidebarImgError ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt={displayName}
+                  onError={() => setSidebarImgError(true)}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                initials
+              )}
+            </Link>
+          )}
         </div>
 
         {/* Mobile Drawer */}
@@ -321,33 +335,43 @@ export default function DashboardSidebar({
 
               {/* Mobile Drawer Profile Footer */}
               <div className="border-t border-slate-100 pt-4">
-                <Link
-                  href="/dashboard/profile"
-                  onClick={closeMobileMenu}
-                  className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
-                    {avatarUrl && !sidebarImgError ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        onError={() => setSidebarImgError(true)}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
+                {loading || !user ? (
+                  <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3 animate-pulse">
+                    <div className="h-9 w-9 shrink-0 rounded-full bg-slate-200" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="h-3 w-20 rounded bg-slate-200" />
+                      <div className="h-2.5 w-14 rounded bg-slate-100" />
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-slate-800">
-                      {displayName}
-                    </p>
-                    <p className="truncate text-[11px] text-slate-400">
-                      @{user?.username || "profile"}
-                    </p>
-                  </div>
-                </Link>
+                ) : (
+                  <Link
+                    href="/dashboard/profile"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"
+                  >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-xs font-semibold text-teal-700">
+                      {avatarUrl && !sidebarImgError ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={avatarUrl}
+                          alt={displayName}
+                          onError={() => setSidebarImgError(true)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-slate-800">
+                        {displayName}
+                      </p>
+                      <p className="truncate text-[11px] text-slate-400">
+                        @{user.username || "profile"}
+                      </p>
+                    </div>
+                  </Link>
+                )}
               </div>
             </aside>
           </>

@@ -199,16 +199,11 @@ export default function SettingsPage() {
   }, []);
 
   const handleThemeChange = useCallback(async (val: "system" | "light" | "dark") => {
-    // setTheme handles both the optimistic UI update and the backend PATCH
-    // (with rollback on failure). It does NOT update UserProfileContext though,
-    // so we call patchLocalProfile once ThemeProvider accepts the change.
-    setTheme(val);
     setAppearanceSaved(false);
     if (appearanceTimer.current) clearTimeout(appearanceTimer.current);
-    // patchLocalProfile is a pure local state update — no extra API call.
-    patchLocalProfile({ appearance: val });
+    await setTheme(val);
     appearanceTimer.current = setTimeout(() => setAppearanceSaved(true), 400);
-  }, [setTheme, patchLocalProfile]);
+  }, [setTheme]);
 
   const handleSavePreferences = async (e: React.FormEvent) => {
     e.preventDefault();

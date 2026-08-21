@@ -10,7 +10,7 @@ export default function UserMenu() {
   const [imageError, setImageError] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const { user, initials, avatarUrl } = useUserProfile();
+  const { user, loading, initials, avatarUrl } = useUserProfile();
   const { preference, setTheme } = useTheme();
 
   // Reset imageError if avatarUrl changes
@@ -56,28 +56,32 @@ export default function UserMenu() {
 
   return (
     <div ref={menuRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label="Open user menu"
-        className="group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-teal-100 ring-2 ring-transparent transition hover:ring-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-      >
-        {avatarUrl && !imageError ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={displayName}
-            onError={() => setImageError(true)}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <span className="text-sm font-semibold text-teal-700 group-hover:text-teal-800">
-            {initials}
-          </span>
-        )}
-      </button>
+      {loading || !user ? (
+        <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+          aria-haspopup="menu"
+          aria-label="Open user menu"
+          className="group flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-teal-100 ring-2 ring-transparent transition hover:ring-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          {avatarUrl && !imageError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={displayName}
+              onError={() => setImageError(true)}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-sm font-semibold text-teal-700 group-hover:text-teal-800">
+              {initials}
+            </span>
+          )}
+        </button>
+      )}
 
       {open && (
         <div
@@ -86,31 +90,41 @@ export default function UserMenu() {
         >
           {/* User info summary */}
           <div className="border-b border-slate-100 px-3 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
-                {avatarUrl && !imageError ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt={displayName}
-                    onError={() => setImageError(true)}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  initials
-                )}
+            {loading || !user ? (
+              <div className="flex items-center gap-3 animate-pulse">
+                <div className="h-9 w-9 shrink-0 rounded-full bg-slate-200" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="h-3.5 w-24 rounded bg-slate-200" />
+                  <div className="h-2.5 w-32 rounded bg-slate-100" />
+                </div>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-slate-800">
-                  {displayName}
-                </p>
-                {displayEmail && (
-                  <p className="truncate text-xs text-slate-400">
-                    {displayEmail}
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
+                  {avatarUrl && !imageError ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      onError={() => setImageError(true)}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    initials
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-slate-800">
+                    {displayName}
                   </p>
-                )}
+                  {displayEmail && (
+                    <p className="truncate text-xs text-slate-400">
+                      {displayEmail}
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Navigation Links */}

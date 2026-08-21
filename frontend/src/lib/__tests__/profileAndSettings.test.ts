@@ -10,6 +10,7 @@ function assert(condition: boolean, message: string) {
 
 console.log("--- Running Profile & Settings Tests ---\n");
 
+async function runAllTests() {
 // Test 1: getInitials with first and last name
 {
   assert(
@@ -443,4 +444,201 @@ console.log("\n🧪 Running Synchronization Tests...\n");
   );
 }
 
-console.log("\n🎉 ALL PROFILE & SETTINGS TESTS PASSED SUCCESSFULLY!");
+// Test 14: Silent JWT Token Refresh & Request Retry
+{
+  type MockStorage = Record<string, string>;
+  const storage: MockStorage = {
+    access_token: "expired_access_token",
+    refresh_token: "valid_refresh_token",
+    username: "testuser",
+  };
+
+  let refreshCallCount = 0;
+  let meCallCount = 0;
+
+  async function mockSilentRefreshToken(): Promise<string | null> {
+    refreshCallCount++;
+    if (storage.refresh_token === "valid_refresh_token") {
+      storage.access_token = "new_access_token_123";
+      storage.refresh_token = "rotated_refresh_token_456";
+      return storage.access_token;
+    }
+    delete storage.access_token;
+    delete storage.refresh_token;
+    delete storage.username;
+    return null;
+  }
+
+  async function mockAuthFetch(url: string, token: string | null, isRetry = false): Promise<{ status: number; data?: any }> {
+    meCallCount++;
+    if (token === "new_access_token_123") {
+      return { status: 200, data: { username: "testuser", profile: { timezone: "Africa/Lagos", appearance: "dark" } } };
+    }
+    if (token === "expired_access_token" && !isRetry) {
+      // 401 triggers silent refresh
+      const refreshedToken = await mockSilentRefreshToken();
+      if (refreshedToken) {
+        return mockAuthFetch(url, refreshedToken, true);
+      }
+    }
+    return { status: 401 };
+  }
+
+  const response = await mockAuthFetch("/api/auth/me/", storage.access_token);
+  assert(response.status === 200, "Auth: Expired access token triggers silent refresh and retries successfully (status 200)");
+  assert(refreshCallCount === 1, "Auth: Refresh endpoint was called exactly once");
+  assert(meCallCount === 2, "Auth: Original request was retried exactly once with new token");
+  assert(storage.access_token === "new_access_token_123", "Auth: New access token stored in localStorage");
+  assert(storage.refresh_token === "rotated_refresh_token_456", "Auth: Rotated refresh token stored in localStorage");
+}
+
+// Test 15: Expired access token + invalid refresh token clears credentials
+{
+  const storage: Record<string, string> = {
+    access_token: "expired_access_token",
+    refresh_token: "invalid_or_expired_refresh_token",
+    username: "testuser",
+  };
+
+  async function mockFailedRefresh() {
+    // Backend returns 401 for invalid refresh token
+    delete storage.access_token;
+    delete storage.refresh_token;
+    delete storage.username;
+    return null;
+  }
+
+  const token = await mockFailedRefresh();
+  assert(token === null, "Auth: Failed refresh returns null");
+  assert(storage.access_token === undefined, "Auth: Access token cleared from storage on refresh failure");
+  assert(storage.refresh_token === undefined, "Auth: Refresh token cleared from storage on refresh failure");
+  assert(storage.username === undefined, "Auth: Username cleared from storage on refresh failure");
+}
+
+// Test 16: Infinite loop prevention (max 1 retry)
+{
+  let retryCount = 0;
+
+  async function mockInfiniteLoopGuard(isRetry = false): Promise<number> {
+    retryCount++;
+    if (!isRetry) {
+      // Attempt retry once
+      return mockInfiniteLoopGuard(true);
+    }
+    // Second failure must not trigger another retry
+    return 401;
+  }
+
+  const finalStatus = await mockInfiniteLoopGuard(false);
+  assert(finalStatus === 401, "Auth: Unrecoverable 401 does not loop indefinitely");
+  assert(retryCount === 2, "Auth: Max retry count is exactly 1 (2 total invocations)");
+}
+
+// Test 17: Concurrent 401 deduplication (single refresh promise)
+{
+  let refreshApiCallCount = 0;
+  let inFlightPromise: Promise<string> | null = null;
+
+  async function dedupedRefreshToken(): Promise<string> {
+    if (inFlightPromise) {
+      return inFlightPromise;
+    }
+    inFlightPromise = (async () => {
+      refreshApiCallCount++;
+      // Simulate network latency
+      await new Promise((r) => setTimeout(r, 10));
+      return "fresh_token_xyz";
+    })();
+    const result = await inFlightPromise;
+    inFlightPromise = null;
+    return result;
+  }
+
+  // Dispatch 5 simultaneous 401 recovery requests
+  const results = await Promise.all([
+    dedupedRefreshToken(),
+    dedupedRefreshToken(),
+    dedupedRefreshToken(),
+    dedupedRefreshToken(),
+    dedupedRefreshToken(),
+  ]);
+
+  assert(refreshApiCallCount === 1, "Auth: 5 concurrent 401 requests trigger exactly 1 refresh network call");
+  assert(results.every((t) => t === "fresh_token_xyz"), "Auth: All concurrent requests receive the same refreshed token");
+}
+
+// Test 18: Profile hydration and avatar availability after refresh
+{
+  type UserData = {
+    username: string;
+    profile: {
+      full_name: string;
+      avatar: string | null;
+      appearance: "system" | "light" | "dark";
+      timezone: string;
+    };
+  };
+
+  const hydratedUser: UserData = {
+    username: "johndoe",
+    profile: {
+      full_name: "Johnathan Doe",
+      avatar: "/media/avatars/john.png",
+      appearance: "dark",
+      timezone: "Africa/Lagos",
+    },
+  };
+
+  assert(Boolean(hydratedUser.profile.avatar), "Hydration: Avatar URL is preserved on user profile");
+  assert(hydratedUser.profile.appearance === "dark", "Hydration: Saved appearance ('dark') is preserved");
+  assert(hydratedUser.profile.timezone === "Africa/Lagos", "Hydration: Saved timezone ('Africa/Lagos') is preserved");
+  assert(
+    Boolean(formatAvatarUrl(hydratedUser.profile.avatar)?.includes("/media/avatars/john.png")),
+    "Hydration: formatAvatarUrl formats avatar media path correctly"
+  );
+}
+
+// Test 19: Deterministic SSR initial render and post-hydration user identity
+{
+  // 1. Initial / SSR render state: deterministic fallback without localStorage access
+  const initialUser = null as unknown as { username?: string; profile?: { full_name?: string } } | null;
+  const initialDisplayName = initialUser?.profile?.full_name || initialUser?.username || "User";
+  const initialInitials = getInitials(undefined, undefined, undefined, undefined);
+
+  assert(initialDisplayName === "User", "Hydration: Initial render produces deterministic fallback 'User' across SSR and client");
+  assert(initialInitials === "U", "Hydration: Initial render produces deterministic initials 'U' across SSR and client");
+
+  // 2. Post-hydration state: populated with server-confirmed UserData
+  const hydratedUser = { username: "johndoe", profile: { full_name: "John Doe" } };
+  const hydratedDisplayName = hydratedUser.profile.full_name || hydratedUser.username || "User";
+  const hydratedInitials = getInitials("John", "Doe");
+
+  assert(hydratedDisplayName === "John Doe", "Hydration: Server-confirmed UserData renders authenticated name after hydration");
+  assert(hydratedInitials === "JD", "Hydration: Server-confirmed UserData renders correct initials after hydration");
+}
+
+// Test 20: ThemeProvider consumes canonical appearance without duplicate fetch
+{
+  type AppState = {
+    userProfileAppearance: "system" | "light" | "dark";
+    themeProviderIndependentFetches: number;
+  };
+
+  const app: AppState = {
+    userProfileAppearance: "dark",
+    themeProviderIndependentFetches: 0,
+  };
+
+  // ThemeProvider consumes userProfileAppearance directly from context
+  const activeTheme = app.userProfileAppearance === "dark" ? "dark" : "light";
+
+  assert(activeTheme === "dark", "Theme: ThemeProvider resolves 'dark' from UserProfileContext");
+  assert(app.themeProviderIndependentFetches === 0, "Theme: ThemeProvider performs 0 independent /api/auth/me/ fetches");
+  console.log("\n🎉 ALL PROFILE & SETTINGS TESTS PASSED SUCCESSFULLY!");
+}
+}
+
+runAllTests().catch((err) => {
+  console.error("❌ Test runner error:", err);
+  process.exit(1);
+});

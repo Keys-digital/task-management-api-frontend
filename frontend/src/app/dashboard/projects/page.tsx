@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
+import { useUserProfile } from "@/components/UserProfileContext";
+import { authFetch } from "@/lib/api";
 
 type Project = {
   id: number;
@@ -12,9 +14,6 @@ type Project = {
   created_at: string;
   updated_at: string;
 };
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const PROJECT_ICONS = [
   {
@@ -50,7 +49,13 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [username, setUsername] = useState("");
+  const { user, loading: userLoading } = useUserProfile();
+
+  const userDisplayName =
+    user?.profile?.full_name ||
+    (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
+    user?.username ||
+    "User";
 
   const [search, setSearch] = useState("");
 
@@ -66,16 +71,9 @@ export default function ProjectsPage() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/projects/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await authFetch("/api/projects/");
 
       if (response.status === 401) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
         window.location.href = "/";
         return;
       }
@@ -98,16 +96,8 @@ export default function ProjectsPage() {
   };
 
   useEffect(() => {
-  fetchProjects();
-}, []);
-
-useEffect(() => {
-  const storedUsername = localStorage.getItem("username");
-
-  if (storedUsername) {
-    setUsername(storedUsername);
-  }
-}, []);
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter((project) => {
     const query = search.trim().toLowerCase();
@@ -145,13 +135,21 @@ useEffect(() => {
 
             <div className="flex items-center gap-3">
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-800">
-  {username || "User"}
-</p>
-
-                <p className="text-xs text-slate-400">
-                  Workspace owner
-                </p>
+                {userLoading || !user ? (
+                  <div className="space-y-1 animate-pulse">
+                    <div className="ml-auto h-4 w-24 rounded bg-slate-200" />
+                    <div className="ml-auto h-3 w-28 rounded bg-slate-100" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {userDisplayName}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Workspace owner
+                    </p>
+                  </>
+                )}
               </div>
 
 

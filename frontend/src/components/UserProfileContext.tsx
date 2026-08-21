@@ -9,6 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { authFetch, API_URL } from "@/lib/api";
 
 export type UserProfileData = {
   full_name: string;
@@ -67,9 +68,6 @@ const UserProfileContext = createContext<UserProfileContextType | undefined>(
   undefined
 );
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-
 export function getInitials(
   firstName?: string,
   lastName?: string,
@@ -125,25 +123,27 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       typeof window !== "undefined"
         ? localStorage.getItem("access_token")
         : null;
+    const refreshToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem("refresh_token")
+        : null;
 
-    if (!token) {
+    if (!token && !refreshToken) {
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/me/`, {
+      const response = await authFetch("/api/auth/me/", {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
       if (!response.ok) {
         if (response.status === 401) {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
+          setUser(null);
         }
         throw new Error(`Failed to load profile (${response.status})`);
       }
@@ -203,10 +203,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       });
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/me/`, {
+        const response = await authFetch("/api/auth/me/", {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify(data),
@@ -276,11 +275,8 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
       formData.append("avatar", file);
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/me/`, {
+        const response = await authFetch("/api/auth/me/", {
           method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
           body: formData,
         });
 
@@ -325,10 +321,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/me/`, {
+      const response = await authFetch("/api/auth/me/", {
         method: "PATCH",
         headers: {
-          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ remove_avatar: true }),

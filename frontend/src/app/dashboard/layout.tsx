@@ -9,9 +9,9 @@ export default function DashboardLayout({
 }) {
   return (
     <div>
-      <ThemeProvider>
-        <UserProfileProvider>{children}</UserProfileProvider>
-      </ThemeProvider>
+      <UserProfileProvider>
+        <ThemeProvider>{children}</ThemeProvider>
+      </UserProfileProvider>
     </div>
   );
 }

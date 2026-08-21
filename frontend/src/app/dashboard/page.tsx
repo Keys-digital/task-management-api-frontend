@@ -6,6 +6,8 @@ import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
 import DashboardTaskSummary from "@/components/DashboardTaskSummary";
 import type { Task } from "@/lib/taskSummary";
+import { authFetch } from "@/lib/api";
+import { useUserProfile } from "@/components/UserProfileContext";
 
 type Project = {
   id: number;
@@ -14,9 +16,6 @@ type Project = {
   created_at: string;
   updated_at: string;
 };
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const PROJECT_CARD_STYLES = [
   {
@@ -68,7 +67,13 @@ export default function DashboardPage() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [error, setError] = useState("");
   const [tasksError, setTasksError] = useState("");
-  const [username, setUsername] = useState("");
+  const { user, loading: userLoading } = useUserProfile();
+
+  const userDisplayName =
+    user?.profile?.full_name ||
+    (user?.first_name ? `${user.first_name} ${user.last_name || ""}`.trim() : "") ||
+    user?.username ||
+    "User";
 
   useEffect(() => {
     const fetchData = async () => {
@@ -80,33 +85,16 @@ export default function DashboardPage() {
           return;
         }
 
-        const storedUsername = localStorage.getItem("username");
-        if (storedUsername) {
-          setUsername(storedUsername);
-        }
-
-        // Fetch projects and tasks in parallel
+        // Fetch projects and tasks in parallel with silent refresh
         const [projectsResponse, tasksResponse] = await Promise.all([
-          fetch(`${API_URL}/api/projects/`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
-          fetch(`${API_URL}/api/projects/tasks/`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }),
+          authFetch("/api/projects/"),
+          authFetch("/api/projects/tasks/"),
         ]);
 
         if (
           projectsResponse.status === 401 ||
           tasksResponse.status === 401
         ) {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
           window.location.href = "/";
           return;
         }
@@ -189,13 +177,21 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
 
               <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-800">
-                  {username || "User"}
-                </p>
-
-                <p className="text-xs text-slate-400">
-                  Workspace owner
-                </p>
+                {userLoading || !user ? (
+                  <div className="space-y-1 animate-pulse">
+                    <div className="ml-auto h-4 w-24 rounded bg-slate-200" />
+                    <div className="ml-auto h-3 w-28 rounded bg-slate-100" />
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {userDisplayName}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      Workspace owner
+                    </p>
+                  </>
+                )}
               </div>
 
         {/* UserMenu Avartar dropdown */}
@@ -211,9 +207,13 @@ export default function DashboardPage() {
 
             {/* Welcome */}
             <div className="mb-8">
-              <h3 className="text-3xl font-bold tracking-tight text-slate-900">
-                Welcome back, {username || "User"}
-              </h3>
+              {userLoading || !user ? (
+                <div className="h-9 w-64 rounded-lg bg-slate-200 animate-pulse" />
+              ) : (
+                <h3 className="text-3xl font-bold tracking-tight text-slate-900">
+                  Welcome back, {user.first_name || user.profile?.full_name?.split(" ")[0] || user.username}
+                </h3>
+              )}
 
               <p className="mt-2 text-slate-500">
                 Here&apos;s what&apos;s happening with your work.
