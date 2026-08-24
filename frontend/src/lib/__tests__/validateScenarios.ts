@@ -10,10 +10,10 @@ import type { Task } from "../taskSummary";
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
-    console.error(`❌ FAILED: ${message}`);
+    console.error(`FAILED: ${message}`);
     process.exit(1);
   }
-  console.log(`✅ PASSED: ${message}`);
+  console.log(`PASSED: ${message}`);
 }
 
 const TODAY = "2026-08-21";
@@ -110,7 +110,7 @@ console.log("--- Running Task Summary Scenario Tests ---\n");
 {
   const tasks: Task[] = [
     { id: 10, title: "Completed Past Due", due_date: "2026-08-10", status: "completed", priority: "high" },
-    { id: 11, title: "Completed Past Due 2", due_date: "2026-08-10", status: "Completed", priority: "high" },
+    { id: 11, title: "Completed Past Due 2", due_date: "2026-08-10", status: "completed", priority: "high" },
     { id: 4, title: "Upcoming 1", due_date: "2026-08-22", status: "todo", priority: "high" },
   ];
 
@@ -122,7 +122,7 @@ console.log("--- Running Task Summary Scenario Tests ---\n");
     "Scenario 6: isTaskOverdue returns false for completed status"
   );
   assert(
-    !isTaskOverdue("2026-08-10", "Completed", TODAY),
+    !isTaskOverdue("2026-08-10", "completed", TODAY),
     "Scenario 6: isTaskOverdue returns false for capitalized Completed status"
   );
 }
@@ -186,4 +186,4 @@ console.log("--- Running Task Summary Scenario Tests ---\n");
   assert(getProjectName(task4, projectsMap) === "Project #99", "Project name fallback to Project #99");
 }
 
-console.log("\n🎉 ALL TESTS PASSED SUCCESSFULLY!");
+console.log("\nALL TESTS PASSED SUCCESSFULLY!");

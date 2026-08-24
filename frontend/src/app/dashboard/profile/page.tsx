@@ -305,10 +305,10 @@ export default function ProfilePage() {
         {/* Main Content Area */}
         <section className="flex-1">
           {/* Top Bar */}
-          <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5 md:px-10">
-            <div>
+          <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5 md:px-10">
+            <div className="min-w-0">
               <p className="text-sm text-slate-400">Account</p>
-              <h2 className="text-xl font-semibold text-slate-900">Profile</h2>
+              <h2 className="text-xl font-semibold text-slate-900 truncate">Profile</h2>
             </div>
             <UserMenu />
           </header>
@@ -775,7 +775,7 @@ export default function ProfilePage() {
               </p>
             )}
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}

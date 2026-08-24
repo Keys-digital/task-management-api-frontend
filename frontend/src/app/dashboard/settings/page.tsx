@@ -560,10 +560,10 @@ export default function SettingsPage() {
         {/* Main Content */}
         <section className="flex-1">
           {/* Header */}
-          <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5 md:px-10">
-            <div>
+          <header className="flex items-center justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5 md:px-10">
+            <div className="min-w-0">
               <p className="text-sm text-slate-400">Workspace</p>
-              <h2 className="text-xl font-semibold text-slate-900">Settings</h2>
+              <h2 className="text-xl font-semibold text-slate-900 truncate">Settings</h2>
             </div>
             <UserMenu />
           </header>
@@ -607,11 +607,11 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex gap-8 lg:items-start">
+              <div className="flex flex-col gap-6 lg:flex-row lg:gap-8 lg:items-start">
                 {/* Sidebar / Mobile Navigation */}
-                <aside className="shrink-0 lg:w-56">
+                <aside className="w-full shrink-0 lg:w-56">
                   {/* Mobile: compact select */}
-                  <div className="lg:hidden mb-6">
+                  <div className="lg:hidden">
                     <label htmlFor="settings-mobile-nav" className="sr-only">Settings section</label>
                     <div className="relative">
                       <select
@@ -914,7 +914,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6">
                         <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
                           {prefDirty && !savingPreferences && (
                             <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
@@ -1048,7 +1048,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6">
                         <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
                           {taskDirty && !savingTasks && (
                             <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
@@ -1205,7 +1205,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
 
-                      <div className="mt-8 flex items-center justify-between gap-4 border-t border-slate-100 pt-6">
+                      <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6">
                         <div className="flex items-center gap-2 text-xs text-slate-400 min-h-[1.25rem]" aria-live="polite">
                           {notifDirty && !savingNotifications && (
                             <><span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />Unsaved changes</>
@@ -1676,7 +1676,7 @@ export default function SettingsPage() {
               </p>
             )}
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(false)}

@@ -55,7 +55,7 @@ export default function UserMenu() {
   const displayEmail = user?.email || "";
 
   return (
-    <div ref={menuRef} className="relative">
+    <div ref={menuRef} className="relative hidden md:block">
       {loading || !user ? (
         <div className="h-10 w-10 rounded-full bg-slate-200 animate-pulse" />
       ) : (
@@ -85,7 +85,7 @@ export default function UserMenu() {
 
       {open && (
         <div
-          className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl ring-1 ring-slate-900/5 transition"
+          className="absolute right-0 top-12 z-50 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl ring-1 ring-slate-900/5 transition"
           role="menu"
         >
           {/* User info summary */}
