@@ -1,0 +1,32 @@
+{
+  "name": "@taskflo/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TaskFlo Mobile Application & Typed SDK Foundation",
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "dev": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "npx tsx src/__tests__/runTests.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo": "^54.0.37",
+    "expo-constants": "~18.0.14",
+    "expo-secure-store": "~15.0.8",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "~19.1.10",
+    "babel-preset-expo": "^54.0.12",
+    "react": "19.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.2"
+  }
+}

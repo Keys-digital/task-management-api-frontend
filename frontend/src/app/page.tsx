@@ -284,7 +284,7 @@ export default function Home() {
             </>
           ) : (
             <>
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <button
                 type="button"
                 onClick={switchMode}

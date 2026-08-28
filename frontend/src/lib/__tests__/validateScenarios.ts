@@ -2,8 +2,6 @@ import {
   selectDashboardTasks,
   isTaskOverdue,
   isTaskUpcoming,
-  isTaskCompleted,
-  formatDueDate,
   getProjectName,
 } from "../taskSummary";
 import type { Task } from "../taskSummary";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
 import { useTheme } from "@/components/ThemeProvider/ThemeProvider";
@@ -1562,42 +1563,53 @@ export default function SettingsPage() {
                       </div>
 
                       {/* Mobile Apps Section */}
-                      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 sm:p-8">
-                        <div className="mb-4">
-                          <h4 className="text-lg font-bold text-slate-900">
-                            TaskFlo Mobile App
-                          </h4>
-                          <p className="mt-1 text-sm text-slate-500">
-                            Take your workspaces on the go with dedicated mobile experiences.
-                          </p>
+                      <div className="rounded-2xl bg-slate-900 p-6 text-white shadow-sm ring-1 ring-slate-800 sm:p-8">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                          <div>
+                            <span className="rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-400 border border-blue-500/20">
+                              Beta Preview — v0.1.0-beta.1
+                            </span>
+                            <h4 className="mt-2 text-lg font-bold text-white">
+                              TaskFlo Mobile Application & Distribution Hub
+                            </h4>
+                            <p className="mt-1 text-sm text-slate-300">
+                              Access iOS TestFlight enrollment, Android APK preview, PWA setup, and real-time QR codes.
+                            </p>
+                          </div>
+                          <Link
+                            href="/dashboard/settings/mobile"
+                            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-blue-500 transition-colors"
+                          >
+                            Open Mobile Distribution Page →
+                          </Link>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="rounded-xl border border-slate-200 p-4">
+                          <div className="rounded-xl border border-slate-800 bg-slate-800/50 p-4">
                             <div className="flex items-center justify-between">
-                              <p className="font-semibold text-slate-800">
+                              <p className="font-semibold text-slate-100">
                                 iOS (iPhone & iPad)
                               </p>
-                              <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
-                                Coming Soon
+                              <span className="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-400 border border-amber-500/20">
+                                TestFlight Beta
                               </span>
                             </div>
                             <p className="mt-1 text-xs text-slate-400">
-                              Native iOS application with offline sync and widget support.
+                              Native React Native iOS application with Keychain security, token refresh, and offline cache.
                             </p>
                           </div>
 
-                          <div className="rounded-xl border border-slate-200 p-4">
+                          <div className="rounded-xl border border-slate-800 bg-slate-800/50 p-4">
                             <div className="flex items-center justify-between">
-                              <p className="font-semibold text-slate-800">
+                              <p className="font-semibold text-slate-100">
                                 Android
                               </p>
-                              <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
-                                Coming Soon
+                              <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-400 border border-emerald-500/20">
+                                Internal Track
                               </span>
                             </div>
                             <p className="mt-1 text-xs text-slate-400">
-                              Native Android build with push notifications and quick capture.
+                              Native Android build with Keystore encryption, due-date alert scheduling, and search.
                             </p>
                           </div>
                         </div>

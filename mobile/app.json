@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "TaskFlo",
+    "slug": "taskflo-mobile",
+    "version": "0.1.0-beta.1",
+    "orientation": "portrait",
+    "scheme": "taskflo",
+    "platforms": ["ios", "android", "web"],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050506"
+    },
+    "ios": {
+      "bundleIdentifier": "app.taskflo.mobile",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "app.taskflo.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#050506"
+      }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
