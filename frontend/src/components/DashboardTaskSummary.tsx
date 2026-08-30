@@ -227,13 +227,11 @@ export default function DashboardTaskSummary({
             </Link>
           </div>
         </div>
-      )}
-
-      {/* Populated Task Cards (Max 3) */}
+      )}      {/* Populated Task Cards (Max 3) */}
       {!loading && !error && selectedTasks.length > 0 && (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {selectedTasks.map((task) => {
-            const overdue = isTaskOverdue(task.due_date, task.status, todayStr);
+            const overdue = isTaskOverdue(task.due_date, task.status, todayStr, task.due_time, task.is_overdue);
             const projectId = getProjectId(task.project);
             const projectName = getProjectName(task, projectsMap);
             const dueDateFormatted = formatDueDate(task.due_date);
@@ -295,7 +293,7 @@ export default function DashboardTaskSummary({
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M9 5h6M9 9h6M9 13h4M6.75 3.75h10.5A1.75 1.75 0 0 1 19 5.5v13A1.75 1.75 0 0 1 17.25 20H6.75A1.75 1.75 0 0 1 5 18.5v-13a1.75 1.75 0 0 1 1.75-1.75Z"
+                            d="M9 5h6M9 9h6M9 13h4M6.75 3.75h10.5A1.75 1.75 0 0 1 19 5.5v13A1.75 1.75 0 0 1 17.25 20H6.75A1.75 1.75 0 0 1 5 18.5v-13A1.75 1.75 0 0 1 6.75 3.75Z"
                           />
                         </svg>
                       )}
@@ -357,21 +355,21 @@ export default function DashboardTaskSummary({
                 {/* Due Date Row */}
                 <div
                   className={`mt-5 border-t pt-4 ${
-                    overdue ? "border-rose-200/70" : "border-slate-100"
+                    overdue ? "border-rose-200/70 dark:border-rose-900/60" : "border-slate-100 dark:border-slate-800"
                   }`}
                 >
                   <p
                     className={`text-xs ${
                       overdue
-                        ? "font-semibold text-rose-600"
-                        : "text-slate-500"
+                        ? "font-semibold text-rose-600 dark:text-rose-400"
+                        : "text-slate-600 dark:text-slate-300 font-medium"
                     }`}
                   >
                     {overdue
-                      ? `Overdue · Due ${dueDateFormatted}`
+                      ? `Overdue · Due ${dueDateFormatted}${task.due_time ? ` at ${task.due_time.slice(0, 5)}` : ""}`
                       : isDueToday
-                      ? `Due Today · ${dueDateFormatted}`
-                      : `Due ${dueDateFormatted}`}
+                      ? `Due Today · ${dueDateFormatted}${task.due_time ? ` at ${task.due_time.slice(0, 5)}` : ""}`
+                      : `Due ${dueDateFormatted}${task.due_time ? ` at ${task.due_time.slice(0, 5)}` : ""}`}
                   </p>
                 </div>
               </Link>

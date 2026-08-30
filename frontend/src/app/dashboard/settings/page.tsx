@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
+import NotificationCenter from "@/components/NotificationCenter";
 import { useTheme } from "@/components/ThemeProvider/ThemeProvider";
 import { useUserProfile } from "@/components/UserProfileContext";
 
@@ -566,7 +567,10 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-400">Workspace</p>
               <h2 className="text-xl font-semibold text-slate-900 truncate">Settings</h2>
             </div>
-            <UserMenu />
+            <div className="flex items-center gap-3">
+              <NotificationCenter />
+              <UserMenu />
+            </div>
           </header>
 
           <div className="mx-auto max-w-6xl px-6 py-8 md:px-10">
@@ -1037,15 +1041,20 @@ export default function SettingsPage() {
                             </p>
                           </div>
 
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={showCompletedTasks}
-                              onChange={(e) => setShowCompletedTasks(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${showCompletedTasks ? "text-teal-800" : "text-slate-400"}`}>
+                              {showCompletedTasks ? "ON" : "OFF"}
+                            </span>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={showCompletedTasks}
+                                onChange={(e) => setShowCompletedTasks(e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                            </label>
+                          </div>
                         </div>
                       </div>
 
@@ -1110,15 +1119,20 @@ export default function SettingsPage() {
                               Get notified when tasks are approaching their due date.
                             </p>
                           </div>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={notifyDueDate}
-                              onChange={(e) => setNotifyDueDate(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${notifyDueDate ? "text-teal-800" : "text-slate-400"}`}>
+                              {notifyDueDate ? "ON" : "OFF"}
+                            </span>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={notifyDueDate}
+                                onChange={(e) => setNotifyDueDate(e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                            </label>
+                          </div>
                         </div>
 
                         {/* Overdue Alerts */}
@@ -1131,15 +1145,20 @@ export default function SettingsPage() {
                               Receive alerts for tasks that have passed their deadline.
                             </p>
                           </div>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={notifyOverdue}
-                              onChange={(e) => setNotifyOverdue(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${notifyOverdue ? "text-teal-800" : "text-slate-400"}`}>
+                              {notifyOverdue ? "ON" : "OFF"}
+                            </span>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={notifyOverdue}
+                                onChange={(e) => setNotifyOverdue(e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                            </label>
+                          </div>
                         </div>
 
                         {/* Project Activity */}
@@ -1152,36 +1171,53 @@ export default function SettingsPage() {
                               Notifications for project changes, new assignments, and completions.
                             </p>
                           </div>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={notifyProjectActivity}
-                              onChange={(e) => setNotifyProjectActivity(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${notifyProjectActivity ? "text-teal-800" : "text-slate-400"}`}>
+                              {notifyProjectActivity ? "ON" : "OFF"}
+                            </span>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={notifyProjectActivity}
+                                onChange={(e) => setNotifyProjectActivity(e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                            </label>
+                          </div>
                         </div>
 
                         {/* Email Digest */}
-                        <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">
-                              Weekly Email Digest
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              Receive a weekly summary of completed tasks and upcoming milestones.
-                            </p>
+                        <div className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium text-slate-800">
+                                  Email Notifications & Digest
+                                </p>
+                                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-200">
+                                  Not Configured
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs text-slate-500">
+                                Email provider setup (SMTP / transactional API) is required in the deployment environment for real inbox delivery.
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className={`text-xs font-semibold ${notifyEmailDigest ? "text-teal-800" : "text-slate-400"}`}>
+                                {notifyEmailDigest ? "ON" : "OFF"}
+                              </span>
+                              <label className="relative inline-flex cursor-pointer items-center shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={notifyEmailDigest}
+                                  onChange={(e) => setNotifyEmailDigest(e.target.checked)}
+                                  className="peer sr-only"
+                                />
+                                <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                              </label>
+                            </div>
                           </div>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={notifyEmailDigest}
-                              onChange={(e) => setNotifyEmailDigest(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
                         </div>
 
                         {/* In-App Notifications */}
@@ -1194,15 +1230,20 @@ export default function SettingsPage() {
                               Show badges and banner notifications in the workspace top bar.
                             </p>
                           </div>
-                          <label className="relative inline-flex cursor-pointer items-center">
-                            <input
-                              type="checkbox"
-                              checked={notifyInApp}
-                              onChange={(e) => setNotifyInApp(e.target.checked)}
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-slate-200 peer-checked:bg-teal-600 peer-focus:outline-none peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-['']"></div>
-                          </label>
+                          <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${notifyInApp ? "text-teal-800" : "text-slate-400"}`}>
+                              {notifyInApp ? "ON" : "OFF"}
+                            </span>
+                            <label className="relative inline-flex cursor-pointer items-center">
+                              <input
+                                type="checkbox"
+                                checked={notifyInApp}
+                                onChange={(e) => setNotifyInApp(e.target.checked)}
+                                className="peer sr-only"
+                              />
+                              <div className="h-6 w-11 rounded-full border border-slate-300 bg-slate-200 transition-colors duration-200 peer-checked:border-teal-700 peer-checked:bg-teal-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/30 peer-checked:after:translate-x-full peer-checked:after:border-white after:absolute after:top-[2px] after:start-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-200 after:bg-white after:shadow-md after:transition-all after:content-['']"></div>
+                            </label>
+                          </div>
                         </div>
                       </div>
 

@@ -12,7 +12,13 @@ export type Task = {
   description?: string;
   status: string;
   priority: string;
+  start_date?: string | null;
+  start_time?: string | null;
   due_date?: string | null;
+  due_time?: string | null;
+  reminder_offset?: string;
+  reminder_datetime?: string | null;
+  is_overdue?: boolean;
   created_at?: string;
   updated_at?: string;
   project?: number | Project;
@@ -77,11 +83,22 @@ export const normalizeDueDateString = (dueDate?: string | null): string | null =
 export const isTaskOverdue = (
   dueDate?: string | null,
   status?: string,
-  todayStr?: string
+  todayStr?: string,
+  dueTime?: string | null,
+  backendIsOverdue?: boolean
 ): boolean => {
+  if (backendIsOverdue !== undefined) return backendIsOverdue;
   const normalizedDue = normalizeDueDateString(dueDate);
   if (!normalizedDue || isTaskCompleted(status)) {
     return false;
+  }
+
+  if (dueTime) {
+    const timeStr = dueTime.length === 5 ? `${dueTime}:00` : dueTime;
+    const dueDt = new Date(`${normalizedDue}T${timeStr}`);
+    if (!isNaN(dueDt.getTime())) {
+      return dueDt < new Date();
+    }
   }
 
   const today = todayStr || getTodayDateString();

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
+import NotificationCenter from "@/components/NotificationCenter";
 import DashboardTaskSummary from "@/components/DashboardTaskSummary";
 import type { Task } from "@/lib/taskSummary";
 import { authFetch } from "@/lib/api";
@@ -194,8 +195,11 @@ export default function DashboardPage() {
                 )}
               </div>
 
-        {/* UserMenu Avartar dropdown */}
-<UserMenu />
+              {/* In-App Notification Center */}
+              <NotificationCenter />
+
+              {/* UserMenu Avatar dropdown */}
+              <UserMenu />
               
 
             </div>

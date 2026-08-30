@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import UserMenu from "@/components/UserMenu";
+import NotificationCenter from "@/components/NotificationCenter";
 import { useUserProfile } from "@/components/UserProfileContext";
 import { authFetch } from "@/lib/api";
 
@@ -18,15 +19,18 @@ type Task = {
   description?: string;
   status: string;
   priority: string;
+  start_date?: string | null;
+  start_time?: string | null;
   due_date?: string | null;
+  due_time?: string | null;
+  reminder_offset?: string;
+  reminder_datetime?: string | null;
+  is_overdue?: boolean;
   created_at?: string;
   updated_at?: string;
   project?: number | Project;
   project_name?: string;
 };
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const STATUS_STYLES: Record<
   string,
@@ -46,7 +50,7 @@ const STATUS_STYLES: Record<
     background: "bg-blue-100",
     text: "text-blue-700",
   },
-  Completed: {
+  completed: {
     label: "Completed",
     background: "bg-emerald-100",
     text: "text-emerald-700",
@@ -131,20 +135,32 @@ const formatDate = (date?: string | null) => {
     return date;
   }
 
-  return parsedDate.toLocaleDateString();
+  return parsedDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 };
 
-const isOverdue = (dueDate?: string | null, status?: string) => {
+const formatTime12h = (timeStr?: string | null) => {
+  if (!timeStr) return "";
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return timeStr;
+  let hours = parseInt(parts[0], 10);
+  const minutes = parts[1];
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours}:${minutes} ${ampm}`;
+};
+
+const isOverdue = (dueDate?: string | null, dueTime?: string | null, status?: string, backendIsOverdue?: boolean) => {
+  if (backendIsOverdue !== undefined) return backendIsOverdue;
   if (!dueDate || status === "completed") {
     return false;
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const timeStr = dueTime || "23:59:59";
+  const due = new Date(`${dueDate}T${timeStr.length === 5 ? `${timeStr}:00` : timeStr}`);
+  if (isNaN(due.getTime())) return false;
 
-  const due = new Date(`${dueDate}T00:00:00`);
-
-  return due < today;
+  return due < new Date();
 };
 
 export default function TasksPage() {
@@ -188,9 +204,6 @@ export default function TasksPage() {
 
       const data = await response.json();
 
-      // Supports either:
-      // 1. [task, task, task]
-      // 2. { results: [task, task, task] }
       if (Array.isArray(data)) {
         setTasks(data);
       } else if (Array.isArray(data.results)) {
@@ -213,7 +226,7 @@ export default function TasksPage() {
     fetchTasks();
   }, []);
 
-   const filteredTasks = useMemo(() => {
+  const filteredTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return tasks.filter((task) => {
@@ -235,17 +248,9 @@ export default function TasksPage() {
     });
   }, [tasks, search, statusFilter, priorityFilter]);
 
-  const todoCount = tasks.filter(
-    (task) => task.status === "todo"
-  ).length;
-
-  const inProgressCount = tasks.filter(
-    (task) => task.status === "in_progress"
-  ).length;
-
-  const completedCount = tasks.filter(
-    (task) => task.status === "completed"
-  ).length;
+  const todoCount = tasks.filter((task) => task.status === "todo").length;
+  const inProgressCount = tasks.filter((task) => task.status === "in_progress").length;
+  const completedCount = tasks.filter((task) => task.status === "completed").length;
 
   return (
     <main className="min-h-screen bg-[var(--color-page-bg)] text-slate-900">
@@ -253,12 +258,13 @@ export default function TasksPage() {
 
         {/* Sidebar */}
         <DashboardSidebar activePage="tasks" />
-        
+
         {/* Main content */}
         <section className="flex-1">
 
           {/* Top bar */}
           <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-5 md:px-10">
+
             <div>
               <p className="text-sm text-slate-400">
                 Workspace
@@ -270,6 +276,7 @@ export default function TasksPage() {
             </div>
 
             <div className="flex items-center gap-3">
+
               <div className="hidden text-right sm:block">
                 {userLoading || !user ? (
                   <div className="space-y-1 animate-pulse">
@@ -288,302 +295,175 @@ export default function TasksPage() {
                 )}
               </div>
 
-        {/* UserMenu Avartar dropdown */}
-<UserMenu />
-              
+              {/* In-App Notification Center */}
+              <NotificationCenter />
+
+              {/* User Menu */}
+              <UserMenu />
+
             </div>
+
           </header>
 
+          {/* Page Content */}
           <div className="mx-auto max-w-7xl px-6 py-8 md:px-10">
 
-            {/* Page heading */}
-            <div className="mb-8">
-              <h3 className="text-3xl font-bold tracking-tight text-slate-900">
-                Your Tasks
-              </h3>
+            {/* Header section */}
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-              <p className="mt-2 text-slate-500">
-                View and manage tasks across all your projects.
-              </p>
+              <div>
+                <h3 className="text-3xl font-bold tracking-tight text-slate-900">
+                  All Tasks
+                </h3>
+
+                <p className="mt-2 text-slate-500">
+                  Track schedule, start times, deadlines, and progress across all workspace projects.
+                </p>
+              </div>
+
+              <Link
+                href="/dashboard/projects"
+                className="inline-flex items-center justify-center rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-800"
+              >
+                + New Project / Task
+              </Link>
+
             </div>
 
-            {/* Summary */}
-            {!loading && !error && tasks.length > 0 && (
-              <div className="mb-6 grid gap-4 sm:grid-cols-3">
+            {/* Summary counters */}
+            <div className="mb-8 grid grid-cols-3 gap-4">
 
-                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                  <p className="text-sm font-medium text-slate-500">
-                    To Do
-                  </p>
-
-                  <p className="mt-2 text-2xl font-bold text-slate-900">
-                    {todoCount}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                  <p className="text-sm font-medium text-slate-500">
-                    In Progress
-                  </p>
-
-                  <p className="mt-2 text-2xl font-bold text-blue-700">
-                    {inProgressCount}
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-                  <p className="text-sm font-medium text-slate-500">
-                    Completed
-                  </p>
-
-                  <p className="mt-2 text-2xl font-bold text-emerald-700">
-                    {completedCount}
-                  </p>
-                </div>
-
+              <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  To Do
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">
+                  {todoCount}
+                </p>
               </div>
-            )}
 
-            {/* Filters */}
-            <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
-              <div className="grid gap-4 md:grid-cols-[1fr_180px_180px]">
-
-                <div>
-                  <label
-                    htmlFor="task-search"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Search tasks
-                  </label>
-
-                  <input
-                    id="task-search"
-                    type="search"
-                    value={search}
-                    onChange={(event) =>
-                      setSearch(event.target.value)
-                    }
-                    placeholder="Search by task, description, or project..."
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="status-filter"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Status
-                  </label>
-
-                  <select
-                    id="status-filter"
-                    value={statusFilter}
-                    onChange={(event) =>
-                      setStatusFilter(event.target.value)
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                  >
-                    <option value="all">All statuses</option>
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">
-                      In Progress
-                    </option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="priority-filter"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Priority
-                  </label>
-
-                  <select
-                    id="priority-filter"
-                    value={priorityFilter}
-                    onChange={(event) =>
-                      setPriorityFilter(event.target.value)
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                  >
-                    <option value="all">All priorities</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-
+              <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  In Progress
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">
+                  {inProgressCount}
+                </p>
               </div>
+
+              <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Completed
+                </p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">
+                  {completedCount}
+                </p>
+              </div>
+
             </div>
 
-            {/* Loading */}
-            {loading && (
-              <div className="rounded-2xl bg-white p-8 text-center text-sm text-slate-500 shadow-sm ring-1 ring-slate-100">
-                Loading your tasks...
-              </div>
-            )}
+            {/* Search & Filters */}
+            <div className="mb-8 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
 
-            {/* Error */}
-            {!loading && error && (
-              <div className="rounded-2xl bg-red-50 p-5 text-sm text-red-700">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search tasks by title, description, or project..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-100"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="todo">To Do</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* Task list grid */}
+            {loading ? (
+              <div className="rounded-2xl bg-white p-12 text-center text-sm text-slate-400 shadow-sm">
+                Loading tasks...
+              </div>
+            ) : error ? (
+              <div className="rounded-2xl bg-red-50 p-6 text-sm text-red-700">
                 {error}
               </div>
-            )}
+            ) : filteredTasks.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+                <h4 className="text-lg font-semibold text-slate-800">
+                  No tasks found
+                </h4>
+                <p className="mt-1 text-sm text-slate-500">
+                  {tasks.length === 0 ? "You haven't created any tasks yet." : "No tasks match your filter criteria."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {filteredTasks.map((task) => {
+                  const statusStyle = getStatusStyle(task.status);
+                  const priorityStyle = getPriorityStyle(task.priority);
+                  const projectId = getProjectId(task.project);
+                  const projectName = getProjectName(task);
+                  const dueDate = formatDate(task.due_date);
+                  const startDate = formatDate(task.start_date);
+                  const overdue = isOverdue(task.due_date, task.due_time, task.status, task.is_overdue);
 
-            {/* Empty */}
-            {!loading &&
-              !error &&
-              tasks.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      className="h-6 w-6"
+                  return (
+                    <Link
+                      key={task.id}
+                      href={
+                        projectId
+                          ? `/dashboard/projects/${projectId}`
+                          : "/dashboard/tasks"
+                      }
+                      className="group flex flex-col justify-between rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 5h6M9 9h6M9 13h4M6.75 3.75h10.5A1.75 1.75 0 0 1 19 5.5v13A1.75 1.75 0 0 1 17.25 20H6.75A1.75 1.75 0 0 1 5 18.5v-13a1.75 1.75 0 0 1 1.75-1.75Z"
-                      />
-                    </svg>
-                  </div>
-
-                  <h4 className="mt-4 text-lg font-semibold text-slate-800">
-                    No tasks yet
-                  </h4>
-
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                    Create a task from one of your projects to start
-                    tracking your work.
-                  </p>
-
-                  <Link
-                    href="/dashboard/projects"
-                    className="mt-5 inline-block rounded-xl bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800"
-                  >
-                    View Projects
-                  </Link>
-                </div>
-              )}
-
-            {/* No filtered results */}
-            {!loading &&
-              !error &&
-              tasks.length > 0 &&
-              filteredTasks.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-
-                  <h4 className="text-lg font-semibold text-slate-800">
-                    No matching tasks
-                  </h4>
-
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                    Try changing your search or filters.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setStatusFilter("all");
-                      setPriorityFilter("all");
-                    }}
-                    className="mt-5 rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-                  >
-                    Clear filters
-                  </button>
-                </div>
-              )}
-
-            {/* Task cards */}
-            {!loading &&
-              !error &&
-              filteredTasks.length > 0 && (
-                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-
-                  {filteredTasks.map((task) => {
-                    const statusStyle = getStatusStyle(task.status);
-                    const priorityStyle = getPriorityStyle(
-                      task.priority
-                    );
-
-                    const projectId = getProjectId(task.project);
-                    const projectName = getProjectName(task);
-                    const dueDate = formatDate(task.due_date);
-                    const overdue = isOverdue(
-                      task.due_date,
-                      task.status
-                    );
-
-                    return (
-                      <Link
-                        key={task.id}
-                        href={
-                          projectId
-                            ? `/dashboard/projects/${projectId}`
-                            : "/dashboard/tasks"
-                        }
-                        className="group rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 transition hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        {/* Card header */}
-                        <div className="mb-5 flex items-start justify-between gap-4">
-
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="1.8"
-                              className="h-5 w-5"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 5h6M9 9h6M9 13h4M6.75 3.75h10.5A1.75 1.75 0 0 1 19 5.5v13A1.75 1.75 0 0 1 17.25 20H6.75A1.75 1.75 0 0 1 5 18.5v-13A1.75 1.75 0 0 1 6.75 3.75Z"
-                              />
-                            </svg>
-                          </div>
+                      <div>
+                        {/* Header */}
+                        <div className="mb-4 flex items-start justify-between gap-4">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-100">
+                            {projectName}
+                          </span>
 
                           <span className="text-slate-300 transition group-hover:text-teal-600">
                             →
                           </span>
-
                         </div>
 
-                        {/* Task title */}
-                        <h4 className="text-lg font-semibold text-slate-900">
+                        {/* Title */}
+                        <h4 className="text-lg font-semibold text-slate-900 group-hover:text-teal-950">
                           {task.title}
                         </h4>
 
                         {/* Description */}
                         <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                          {task.description ||
-                            "No description provided."}
+                          {task.description || "No description provided."}
                         </p>
 
-                        {/* Project */}
-                        <div className="mt-4">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                            Project
-                          </p>
-
-                          <p className="mt-1 text-sm font-medium text-slate-700">
-                            {projectName}
-                          </p>
-                        </div>
-
-                        {/* Status / Priority */}
-                        <div className="mt-5 flex flex-wrap gap-2">
-
+                        {/* Status & Priority */}
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle.background} ${statusStyle.text}`}
                           >
@@ -593,37 +473,57 @@ export default function TasksPage() {
                           <span
                             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityStyle.background} ${priorityStyle.text}`}
                           >
-                            {priorityStyle.label} priority
+                            {priorityStyle.label}
                           </span>
 
-                        </div>
-
-                        {/* Due date */}
-                        <div className="mt-5 border-t border-slate-100 pt-4">
-                          {dueDate ? (
-                            <p
-                              className={`text-xs ${
-                                overdue
-                                  ? "font-semibold text-rose-600"
-                                  : "text-slate-400"
-                              }`}
-                            >
-                              {overdue
-                                ? `Overdue · Due ${dueDate}`
-                                : `Due ${dueDate}`}
-                            </p>
-                          ) : (
-                            <p className="text-xs text-slate-400">
-                              No due date
-                            </p>
+                          {overdue && (
+                            <span className="rounded-full bg-rose-600 px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
+                              Overdue
+                            </span>
                           )}
                         </div>
-                      </Link>
-                    );
-                  })}
+                      </div>
 
-                </div>
-              )}
+                      {/* Scheduling Footer */}
+                      <div className="mt-6 border-t border-slate-100 dark:border-slate-800 pt-4 space-y-1.5 text-xs">
+                        {startDate && (
+                          <p className="text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                            <span className="text-slate-400 dark:text-slate-400 font-normal">Start:</span>
+                            <span className="font-semibold text-slate-800 dark:text-slate-100">{startDate}</span>
+                            {task.start_time && <span className="text-slate-600 dark:text-slate-300">at {formatTime12h(task.start_time)}</span>}
+                          </p>
+                        )}
+
+                        {dueDate ? (
+                          <p
+                            className={`flex items-center gap-1.5 ${
+                              overdue
+                                ? "font-semibold text-rose-600 dark:text-rose-400"
+                                : "text-slate-600 dark:text-slate-300"
+                            }`}
+                          >
+                            <span className={overdue ? "text-rose-600 dark:text-rose-400 font-normal" : "text-slate-400 dark:text-slate-400 font-normal"}>Due:</span>
+                            <span className={`font-semibold ${overdue ? "text-rose-900 dark:text-rose-200" : "text-slate-800 dark:text-slate-100"}`}>{dueDate}</span>
+                            {task.due_time && <span className={overdue ? "text-rose-700 dark:text-rose-300" : "text-slate-600 dark:text-slate-300"}>at {formatTime12h(task.due_time)}</span>}
+                          </p>
+                        ) : (
+                          <p className="text-slate-400 dark:text-slate-400">No due date</p>
+                        )}
+
+                        {task.reminder_offset && task.reminder_offset !== "none" && (
+                          <p className="text-teal-700 dark:text-teal-300 font-medium flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3 shrink-0 text-teal-600 dark:text-teal-400">
+                              <path d="M10 2a6 6 0 0 0-6 6v3.586l-.707.707A1 1 0 0 0 4 14h12a1 1 0 0 0 .707-1.707L16 11.586V8a6 6 0 0 0-6-6ZM10 18a3 3 0 0 1-3-3h6a3 3 0 0 1-3 3Z" />
+                            </svg>
+                            <span>Reminder: <strong className="font-semibold text-teal-800 dark:text-teal-200">{task.reminder_offset}</strong></span>
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
           </div>
         </section>
